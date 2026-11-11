@@ -21,7 +21,9 @@ const socials = (await getAllSocialLinks())
   .filter((s) => order.includes(s.data.icon))
   .sort((a, b) => order.indexOf(a.data.icon) - order.indexOf(b.data.icon));
 const socialLabel: Record<string, string> = { facebook: "Facebook", linkedin: "LinkedIn" };
-const path = Astro.url.pathname.replace(/\/$/, "") || "/";
+// Without the GitHub Pages base path (astro.config.mjs PAGES_BASE), if any.
+const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
+const path = Astro.url.pathname.slice(basePath && Astro.url.pathname.startsWith(basePath) ? basePath.length : 0).replace(/\/$/, "") || "/";
 const year = new Date().getFullYear();
 ---
 

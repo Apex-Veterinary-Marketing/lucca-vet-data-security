@@ -80,7 +80,11 @@ const canonicalUrl = canonical ?? toAbsolute(Astro.url.pathname);
 const ogCrop = ogImage && typeof ogImage !== "string"
   ? await getImage({ src: ogImage, width: 1200, height: 630, fit: "cover", format: "jpg", quality: 80 })
   : undefined;
-const resolvedOgImage = toAbsolute(ogCrop?.src ?? (typeof ogImage === "string" ? ogImage : "/og-default.png"));
+// A root path ("/og-default.png") also needs the GitHub Pages base path (astro.config.mjs), if any;
+// astro:assets URLs (ogCrop.src) already carry it.
+const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
+const withBase = (p: string) => (basePath && p.startsWith("/") && !p.startsWith(basePath + "/") ? basePath + p : p);
+const resolvedOgImage = toAbsolute(ogCrop?.src ?? withBase(typeof ogImage === "string" ? ogImage : "/og-default.png"));
 const ogImageSize = ogCrop || !ogImage ? { width: 1200, height: 630 } : undefined;
 const resolvedOgImageAlt = ogImageAlt ?? (ogImage ? undefined : site.practiceName);
 

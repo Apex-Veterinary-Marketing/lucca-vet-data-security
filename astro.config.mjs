@@ -20,6 +20,50 @@ import { siteInfo } from './src/data/site.ts';
 // settings at launch.
 const siteUrl = (process.env.SITE_URL || siteInfo.url || '').replace(/\/$/, '');
 
+// GitHub Pages preview (.github/workflows/deploy-pages.yml): the build is served from
+// https://<org>.github.io/<repo>/, a subfolder, so PAGES_BASE="/<repo>" makes it the base path.
+// Astro prefixes its own files with it; pagesBasePaths (below) prefixes the hand-written
+// root paths ("/images/…", "/about-us", url(/images/…)) in the built HTML and CSS.
+// Unset (local builds, a real domain) = served from the root, nothing changes.
+const base = (process.env.PAGES_BASE || '').replace(/\/$/, '');
+
+/** @type {import('astro').AstroIntegration} */
+const pagesBasePaths = {
+  name: 'pages-base-paths',
+  hooks: {
+    'astro:build:done': ({ dir, logger }) => {
+      if (!base) return;
+      const out = fileURLToPath(dir);
+      /** @param {string} p a root path, e.g. "/images/x.png" */
+      const fix = (p) => (p === base || p.startsWith(base + '/') ? p : base + p);
+      /** @param {string} part one "url descriptor" entry of a srcset */
+      const fixSrcsetPart = (part) => part.replace(/^(\s*)(\/(?!\/)\S*)/, (_m, sp, p) => String(sp) + fix(String(p)));
+      /** @param {string} text an HTML or CSS file */
+      const fixUrls = (text) =>
+        text
+          // href="/x", src="/x", poster="/x", action="/x" (not protocol-relative //host)
+          .replace(/(\s(?:href|src|poster|action)=")(\/(?!\/)[^"]*)"/g, (_m, attr, p) => `${attr}${fix(String(p))}"`)
+          // srcset="/a 400w, /b 800w"
+          .replace(/(\ssrcset=")([^"]*)"/g, (_m, attr, set) => `${attr}${String(set).split(',').map(fixSrcsetPart).join(',')}"`)
+          // CSS url(/x), url("/x"), in stylesheets and style="" attributes
+          .replace(/url\((["']?)(\/(?!\/)[^)"']*)\1\)/g, (_m, q, p) => `url(${q}${fix(String(p))}${q})`);
+      let files = 0;
+      (function walk(d) {
+        for (const e of fs.readdirSync(d, { withFileTypes: true })) {
+          const f = path.join(d, e.name);
+          if (e.isDirectory()) walk(f);
+          else if (/\.(html|css)$/.test(e.name)) {
+            const before = fs.readFileSync(f, 'utf8');
+            const after = fixUrls(before);
+            if (after !== before) { fs.writeFileSync(f, after); files++; }
+          }
+        }
+      })(out);
+      logger.info(`base path ${base}: root paths prefixed in ${files} file(s)`);
+    },
+  },
+};
+
 // /sitemap.xml — generated on every build, so it is always current: a new page
 // or a newly published blog post is in it as soon as that build deploys (every
 // push to main, plus the weekly scheduled-publish rebuild). Nothing to update
@@ -38,7 +82,8 @@ const singleSitemap = {
       const indexable = all.filter((entry) => {
         const loc = entry.match(/<loc>([^<]+)<\/loc>/)?.[1];
         if (!loc) return false;
-        const file = path.join(out, decodeURI(new URL(loc).pathname), 'index.html');
+        const locPath = decodeURI(new URL(loc).pathname);
+        const file = path.join(out, base && locPath.startsWith(base) ? locPath.slice(base.length) : locPath, 'index.html');
         if (!fs.existsSync(file)) return true;
         const html = fs.readFileSync(file, 'utf8');
         const noindex = /<meta name="robots" content="[^"]*noindex/i.test(html);
@@ -60,7 +105,8 @@ const singleSitemap = {
 
 export default defineConfig({
   site: siteUrl,
+  ...(base ? { base } : {}),
   // sitemap() lists every route; singleSitemap turns that into /sitemap.xml,
   // which robots.txt (src/pages/robots.txt.ts) points to.
-  integrations: [sitemap(), singleSitemap],
+  integrations: [sitemap(), singleSitemap, pagesBasePaths],
 });

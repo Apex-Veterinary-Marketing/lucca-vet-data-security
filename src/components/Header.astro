@@ -19,7 +19,9 @@ export interface Props {
 const site = await getSiteInfo();
 const telHref = Astro.props.phone ? phoneHref(site) : undefined;
 
-const path = Astro.url.pathname.replace(/\/$/, "") || "/";
+// Without the GitHub Pages base path (astro.config.mjs PAGES_BASE), if any.
+const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
+const path = Astro.url.pathname.slice(basePath && Astro.url.pathname.startsWith(basePath) ? basePath.length : 0).replace(/\/$/, "") || "/";
 const isCurrent = (href: string) => (href.replace(/\/$/, "") || "/") === path;
 ---
 
