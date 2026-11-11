@@ -1,169 +1,129 @@
 ---
-// Generalized from the real V2 Webflow export's footer.html: accordion
-// columns (native <details>/<summary>, zero JS) that collapse only on
-// mobile.
-//
-// Restructured 2026-09-17 back toward the real export's actual 5-column
-// layout (About us / Services / Dental Care / Surgery / Resources) —
-// previously Skeleton had generalized Dental/Surgery away into one
-// dynamic "Services" column (see git history); direct instruction to
-// restore the dedicated per-category columns. Dental/Surgery are matched
-// by category id ("dental"/"surgery" — Skeleton's own example category
-// slugs, the same ones services-categories/[slug].astro already routes
-// on) rather than hardcoded names, and each column disappears gracefully
-// if a client doesn't have that category (getServiceCategoryBySlug
-// returns undefined) — same "only render what's configured" pattern as
-// ReputationWidget's review links. "Services" (general) lists every
-// service NOT in Dental or Surgery, so a client's Wellness Care (or any
-// future third category) still surfaces somewhere.
-//
-// About Us column also absorbed what used to be its own "Follow Us"
-// column — logo, ~160-char footerAbout blurb, the existing About Us
-// links, then the social icons — direct instruction, freeing up the
-// column slot the Dental/Surgery split needed.
+// Lucca footer — the live Webflow footer, same markup and class names (styled by styles/site.css):
+// the "Complete Ransomware Protection" CTA band, the menu columns (data/navigation.ts), the
+// "Struggling with Your Clinic's IT?" pop-up and the floating Google reviews badge.
+//   - Pop-up: shown 3s after load unless the `alert` cookie is set (1 day) — the live site's
+//     custom code; closed by the backdrop or the × (IX2 "Close Save Big Popup").
+//   - Reviews badge: the agency widget API fills #reviews-container (site.googleWidgetId);
+//     "4.8 ★★★★★" is the live badge's own fallback text.
+import { Image } from "astro:assets";
+import Icon from "./Icon.astro";
+import ButtonPrimary from "./ButtonPrimary.astro";
+import { footerMenus } from "../data/navigation";
 import { getSiteInfo } from "../lib/data/site";
-import { getServiceCategoryBySlug } from "../lib/data/serviceCategories";
-import { getAllServices, getServicesByCategory } from "../lib/data/services";
 import { getAllSocialLinks } from "../lib/data/socialLinks";
-import { SOCIAL_ICON_CLASSES, SOCIAL_LABELS } from "../lib/icons/social";
-import { BLOG_BASE } from "../lib/data/blog";
-import ReviewsBand from "./ReviewsBand.astro";
+import luccaLogo from "../assets/brand/lucca-logo.png";
 
 const site = await getSiteInfo();
-const socialLinks = await getAllSocialLinks();
+// Live footer order: Facebook, then LinkedIn (its X and Instagram icons are hidden placeholders).
+const order = ["facebook", "linkedin"];
+const socials = (await getAllSocialLinks())
+  .filter((s) => order.includes(s.data.icon))
+  .sort((a, b) => order.indexOf(a.data.icon) - order.indexOf(b.data.icon));
+const socialLabel: Record<string, string> = { facebook: "Facebook", linkedin: "LinkedIn" };
+const path = Astro.url.pathname.replace(/\/$/, "") || "/";
 const year = new Date().getFullYear();
-
-const DEDICATED_CATEGORY_IDS = ["dental", "surgery"];
-const [dentalCategory, surgeryCategory] = await Promise.all(
-  DEDICATED_CATEGORY_IDS.map((id) => getServiceCategoryBySlug(id))
-);
-const [dentalServices, surgeryServices, allServices] = await Promise.all([
-  dentalCategory ? getServicesByCategory("dental") : Promise.resolve([]),
-  surgeryCategory ? getServicesByCategory("surgery") : Promise.resolve([]),
-  getAllServices(),
-]);
-const generalServices = allServices.filter(
-  (service) => !service.data.serviceCategory.some((ref) => DEDICATED_CATEGORY_IDS.includes(ref.id))
-);
 ---
 
 <footer class="footer">
-  {/* Fixed-position floating pill (desktop only) — not in-flow footer content, see ReviewsBand.astro. */}
-  <ReviewsBand />
-
-  <div class="footer__grid">
-    <details class="footer__column footer__column--about" open>
-      <summary class="footer__column-title">About Us</summary>
-      <div class="footer__about">
-        {site.logoWhite || site.logoColor ? (
-          <img class="footer__logo" src={site.logoWhite || site.logoColor} alt={site.practiceName} />
-        ) : (
-          <span class="footer__logo-text">{site.practiceName}</span>
-        )}
-        {site.footerAbout && <p class="footer__about-text">{site.footerAbout}</p>}
-        <ul class="footer__link-list">
-          <li><a href="/meet-the-team">Meet the Team</a></li>
-          <li><button type="button" class="footer__link-button" data-modal-target="reputation-widget">How'd We Do?</button></li>
-          <li><a href="/photo-gallery">Photo Gallery</a></li>
-        </ul>
-        <div class="footer__social-icons">
-          {socialLinks.map((social) => (
-            <a
-              class="footer__social-icon"
-              href={social.data.link}
-              aria-label={SOCIAL_LABELS[social.data.icon]}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <i class={SOCIAL_ICON_CLASSES[social.data.icon]} aria-hidden="true"></i>
-            </a>
-          ))}
+  <section class="service-section-v2 section-y-axis-gap dark-bg small-padding">
+    <div class="w-layout-blockcontainer main-container no-margin-bottom w-container">
+      <div class="display-flex-vertical">
+        <div class="section-title-block margin-top-15px padding-bottom width-75">
+          <h2 class="section-title text-white center-text" data-ix="text">Complete Ransomware Protection Starting at $30 Per Month</h2>
+        </div>
+        <div class="service-top-button-block width-20" data-ix="slide-up" data-ix-delay="300">
+          <ButtonPrimary href="/your-cyber-security-mindset" label="Learn More" white />
         </div>
       </div>
-    </details>
-
-    <details class="footer__column" open>
-      <summary class="footer__column-title">Services</summary>
-      <ul class="footer__link-list">
-        {generalServices.map((service) => (
-          <li><a href={`/services/${service.id}`}>{service.data.customName || service.data.name}</a></li>
-        ))}
-        <li><a href="/services"><strong>All Services</strong></a></li>
-      </ul>
-    </details>
-
-    {dentalCategory && (
-      <details class="footer__column" open>
-        <summary class="footer__column-title">{dentalCategory.data.name}</summary>
-        <ul class="footer__link-list">
-          {dentalServices.map((service) => (
-            <li><a href={`/services/${service.id}`}>{service.data.customName || service.data.name}</a></li>
+    </div>
+  </section>
+  <div class="footer-inner-block">
+    <div class="w-layout-blockcontainer main-container w-container">
+      <div class="footer-wrapper">
+        <div class="footer-upper-content-block">
+          <div class="footer-content-single-block">
+            <a href="/" aria-current={path === "/" ? "page" : undefined} class:list={["footer-logo-link w-inline-block", { "w--current": path === "/" }]}>
+              <Image src={luccaLogo} alt={site.practiceName} class="footer-logo" />
+            </a>
+          </div>
+          {footerMenus.map((menu) => (
+            <div class="footer-menu-block">
+              {menu.href ? (
+                <a href={menu.href} class="w-inline-block"><h3 class="footer-menu-title">{menu.title}</h3></a>
+              ) : (
+                <h3 class="footer-menu-title">{menu.title}</h3>
+              )}
+              <div class="footer-menu-wrap">
+                {menu.cmsList ? (
+                  <div class="collection-list-wrapper w-dyn-list">
+                    <div role="list" class="collection-list w-dyn-items">
+                      {menu.links.map((link) => (
+                        <div role="listitem" class="collection-item w-dyn-item"><a href={link.href} class="footer-menu-link">{link.label}</a></div>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  menu.links.map((link) => <a href={link.href} class="footer-menu-link">{link.label}</a>)
+                )}
+              </div>
+            </div>
           ))}
-        </ul>
-      </details>
-    )}
-
-    {surgeryCategory && (
-      <details class="footer__column" open>
-        <summary class="footer__column-title">{surgeryCategory.data.name}</summary>
-        <ul class="footer__link-list">
-          {surgeryServices.map((service) => (
-            <li><a href={`/services/${service.id}`}>{service.data.customName || service.data.name}</a></li>
-          ))}
-        </ul>
-      </details>
-    )}
-
-    <details class="footer__column" open>
-      <summary class="footer__column-title">Resources</summary>
-      <ul class="footer__link-list">
-        <li><a href="/faq">FAQs</a></li>
-        <li><a href="/online-forms">Online Forms</a></li>
-        <li><a href={BLOG_BASE}>Our Blog</a></li>
-        <li><a href="/privacy-policy">Privacy Policy</a></li>
-        <li><a href="/terms-of-use">Terms of Use</a></li>
-      </ul>
-    </details>
+        </div>
+        <div class="footer-lower-content-block">
+          <div class="footer-copyright-text">© {year} {site.practiceName}. <a href="/terms-of-use">Terms Of Use</a></div>
+          <div class="footer-social-block">
+            {socials.map((s) => (
+              <a aria-label={socialLabel[s.data.icon]} href={s.data.link} target="_blank" rel="noopener" class="social-link w-inline-block">
+                <div class="social-icon w-embed"><Icon name={s.data.icon as "facebook" | "linkedin"} /></div>
+              </a>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 
-  <div class="footer__bottom">
-    <p class="footer__copyright">&copy; {year} {site.practiceName}. All rights reserved.</p>
-    <a class="footer__signature" href="https://veterinarymarketing.com/" target="_blank" rel="noopener noreferrer">
-      Made with &hearts; by Veterinary Marketing
+  <div id="pop-up-wrapper" class="pop-up-wrapper" role="dialog" aria-modal="true" aria-labelledby="pop-up-header">
+    <div class="pop-up-back" data-popup-close></div>
+    <div class="pop-up-box">
+      <button type="button" class="pop-up-exit-button" data-popup-close aria-label="Close">
+        <img width="18" alt="" src="/images/site/exit-icon.svg" />
+      </button>
+      <div class="pop-up-text-box">
+        <h2 class="pop-up-header" id="pop-up-header">Struggling with Your Clinic’s IT?</h2>
+        <p class="pop-up-paragraph">We’ve got the solution! Discover how clinics are saving big on IT services while boosting efficiency. Limited spots available—schedule your FREE Discovery Call today!</p>
+      </div>
+      <a href="/book-a-call" class="button w-button">Learn More</a>
+    </div>
+  </div>
+
+  {site.addressLink && (
+    <a href={site.addressLink} target="_blank" rel="noopener" class="google-reviews-widget-2 w-inline-block">
+      <img alt="" src="/images/site/google-icon.png" class="grw-google" />
+      <div class="w-embed w-script">
+        <div id="reviews-container" data-google-widget-id={site.googleWidgetId}></div>
+      </div>
+      <div class="review-box-rating">{site.googleRating} ★★★★★</div>
+      <div class="grw-text">Our Reviews</div>
     </a>
-  </div>
+  )}
 </footer>
 
-<style>
-  .footer { background: var(--footer-bg); color: var(--footer-text); padding-block-start: var(--space-xl); }
-  .footer__grid { max-width: var(--container-max); margin-inline: auto; padding-inline: var(--space-md); display: grid; grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr)); gap: var(--space-lg); }
-  .footer__column { border-block-end: 1px solid var(--footer-border); padding-block-end: var(--space-sm); }
-  .footer__column-title { font-weight: 600; font-size: var(--font-size-md); color: var(--footer-heading); cursor: default; padding-block: var(--space-xs); }
-  .footer__link-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-xs); margin-block-start: var(--space-sm); }
-  .footer__link-list a, .footer__link-button { color: inherit; text-decoration: none; background: none; border: 0; font: inherit; padding: 0; text-align: start; cursor: pointer; }
-  .footer__link-list a:hover, .footer__link-button:hover { text-decoration: underline; }
-
-  .footer__about { display: flex; flex-direction: column; gap: var(--space-sm); margin-block-start: var(--space-sm); }
-  .footer__logo { max-width: 9rem; max-height: 3rem; width: auto; height: auto; object-fit: contain; }
-  .footer__logo-text { font-weight: 700; font-size: 1.1rem; color: var(--footer-heading); }
-  .footer__about-text { margin: 0; font-size: var(--font-size-sm); opacity: 0.85; line-height: 1.5; }
-  .footer__about .footer__link-list { margin-block-start: 0; }
-
-  .footer__social-icons { display: flex; flex-wrap: wrap; gap: var(--space-sm); }
-  .footer__social-icon { color: inherit; display: inline-flex; font-size: 1.4rem; opacity: 0.85; }
-  .footer__social-icon:hover { opacity: 1; }
-
-  .footer__bottom { max-width: var(--container-max); margin-inline: auto; padding: var(--space-lg) var(--space-md); margin-block-start: var(--space-lg); border-block-start: 1px solid var(--footer-border); display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-sm); font-size: var(--font-size-sm); }
-  .footer__signature { color: inherit; opacity: 0.8; text-decoration: none; }
-
-  @media (min-width: 900px) {
-    .footer__column summary { pointer-events: none; }
-    .footer__column summary::marker,
-    .footer__column summary::-webkit-details-marker { display: none; content: ""; }
+<script>
+  // Google reviews badge — the live site's custom code: the agency widget API returns the badge HTML.
+  const container = document.getElementById("reviews-container");
+  const id = container?.dataset.googleWidgetId;
+  if (container && id) {
+    fetch(`https://vetmarketing.googlewidget.com/api/reviews/${id}`)
+      .then((r) => r.text())
+      .then((html) => {
+        container.innerHTML = html;
+        // Anything else on the page that shows the rating ([data-google-rating], e.g. a trust card)
+        // gets the same live number the badge shows; the server-rendered fallback stays otherwise.
+        const rating = parseFloat(container.textContent ?? "");
+        if (rating > 0) document.querySelectorAll<HTMLElement>("[data-google-rating]").forEach((el) => { el.textContent = rating.toFixed(1); });
+      })
+      .catch((err) => console.error("Error fetching reviews:", err));
   }
-
-  @media (max-width: 899px) {
-    .footer__grid { grid-template-columns: 1fr; }
-    .footer__column-title { cursor: pointer; }
-  }
-</style>
+</script>

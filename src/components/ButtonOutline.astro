@@ -1,0 +1,31 @@
+---
+// The live site's outline button (Webflow "outline-button-link"). Hover (IX2 "Outline Button Hover
+// In/Out", rebuilt in site-custom.css): the right circle shrinks away, the left one grows in, and the
+// label fills --main. `hero` = the white "padding-60px" version on the hero slider (fills --cta).
+import Icon from "./Icon.astro";
+
+export interface Props {
+  href: string;
+  label: string;
+  hero?: boolean;
+  newTab?: boolean;
+}
+const { href, label, hero = false, newTab = false } = Astro.props;
+---
+
+<a
+  href={href}
+  target={newTab ? "_blank" : undefined}
+  rel={newTab ? "noopener" : undefined}
+  class:list={["outline-button-link w-inline-block", { "padding-60px": hero }]}
+>
+  <div class:list={["outline-button-icon left", { "bg-4f70e6 remove-outline": hero }]}>
+    <div class="button-image-icon w-embed"><Icon name="arrow" /></div>
+  </div>
+  <div class:list={["outline-button-content", { "bg-white remove-outlone": hero }]}>
+    <div class="outline-button-text">{label}</div>
+  </div>
+  <div class:list={["outline-button-icon right", { "bg-white remove-outline": hero }]}>
+    <div class="button-image-icon w-embed"><Icon name="arrow-black" /></div>
+  </div>
+</a>

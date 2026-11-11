@@ -1,0 +1,26 @@
+---
+// The live site's primary button (Webflow "primary-button-block"): a pill with an arrow circle on
+// each side. Hover (IX2 "Button Hover In/Out", rebuilt in site-custom.css): the right circle shrinks,
+// the left one grows in, and the pill turns --cta. `white` = the white version used on dark bands.
+import Icon from "./Icon.astro";
+
+export interface Props {
+  href: string;
+  label: string;
+  white?: boolean;
+  newTab?: boolean;
+}
+const { href, label, white = false, newTab = false } = Astro.props;
+---
+
+<a href={href} target={newTab ? "_blank" : undefined} rel={newTab ? "noopener" : undefined} class="primary-button-block w-inline-block">
+  <div class:list={["button-icon left", { "white-version": white }]}>
+    <div class="button-image-icon w-embed"><Icon name={white ? "arrow" : "arrow-white"} /></div>
+  </div>
+  <div class:list={["primary-button-link", { "white-version": white }]}>
+    <div class="button-content"><div class="button-color">{label}</div></div>
+  </div>
+  <div class:list={["button-icon right", { "white-version": white }]}>
+    <div class:list={["button-image-icon w-embed", { "white-version": white }]}><Icon name={white ? "arrow" : "arrow-white"} /></div>
+  </div>
+</a>

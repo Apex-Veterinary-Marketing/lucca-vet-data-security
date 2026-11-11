@@ -1,0 +1,26 @@
+---
+// The homepage's dark call-to-action band (live: "Check out our library of FREE eBooks!",
+// "Sign up for our Race Approved CE Course…"). Same Webflow markup the live page uses; the
+// heading text is the default slot.
+import ButtonPrimary from "../ButtonPrimary.astro";
+
+export interface Props {
+  href: string;
+  label: string;
+  newTab?: boolean;
+}
+const { href, label, newTab } = Astro.props;
+---
+
+<section class="service-section-v2 section-y-axis-gap dark-bg small-padding">
+  <div class="w-layout-blockcontainer main-container no-margin-bottom w-container">
+    <div class="display-flex-vertical">
+      <div class="section-title-block margin-top-15px padding-bottom width-75">
+        <h2 class="section-title text-white center-text" data-ix="text"><slot /></h2>
+      </div>
+      <div class="service-top-button-block width-20" data-ix="slide-up" data-ix-delay="300">
+        <ButtonPrimary href={href} label={label} newTab={newTab} white />
+      </div>
+    </div>
+  </div>
+</section>

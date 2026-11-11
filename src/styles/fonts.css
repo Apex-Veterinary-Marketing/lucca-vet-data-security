@@ -3,9 +3,8 @@
  * --font-heading, but nothing ever loaded a real typeface; every page fell
  * back to the browser's own system-ui.
  *
- * Currently Inter (SIL OFL 1.1, free for commercial use) — a REFERENCE
- * choice, not a locked-in brand decision, same as tokens.css's palette:
- * swap it per client. Self-hosted via @fontsource (an npm package of the
+ * Lucca: Outfit (SIL OFL 1.1) — the typeface the live Webflow site uses
+ * (it self-hosted the same family as TTFs). Self-hosted via @fontsource (an npm package of the
  * real WOFF2 files) rather than a Google Fonts CDN `<link>` — no external
  * network request at runtime, works in offline/restricted-network dev
  * environments, and each import below pulls in only the ONE weight it
@@ -32,7 +31,7 @@
  *      those two import paths to the new package's equivalent files, or
  *      drop the preload if the new choice doesn't need it
  */
-@import "@fontsource/inter/400.css";
-@import "@fontsource/inter/500.css";
-@import "@fontsource/inter/600.css";
-@import "@fontsource/inter/700.css";
+@import "@fontsource/outfit/400.css";
+@import "@fontsource/outfit/500.css";
+@import "@fontsource/outfit/600.css";
+@import "@fontsource/outfit/700.css";

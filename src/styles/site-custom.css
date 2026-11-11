@@ -1,0 +1,219 @@
+/*
+ * Lucca — what webflow.js and the Webflow interactions (IX2) did on the live site, rebuilt in CSS.
+ * The timings/easings are the IX2 action lists' own (exported from the site's interactions data,
+ * 2026-11-10), held as --ix-* tokens. WebflowInteractions.astro adds the state classes:
+ *   .is-in       on a [data-ix] element once it scrolls into view
+ *   .is-active   on the current hero slide
+ *   .w--open     on an open dropdown / nav
+ * Hidden start states apply only under html.w-mod-js (set in <head>), so content never stays
+ * hidden without JavaScript, and never under prefers-reduced-motion.
+ */
+
+/* ---- Elements this rebuild turned into <button> (Webflow used divs) render exactly as before ---- */
+/* :where() keeps this at zero specificity, so the Webflow class rules in site.css still win. */
+:where(.nav-dropdown-icon-v2, .menu-button, .slider-button-block, .pop-up-exit-button) {
+  font: inherit;
+  color: inherit;
+  border: 0;
+  padding: 0;
+  background-color: var(--wf-00000000);
+  cursor: pointer;
+  display: block;
+}
+.pop-up-exit-button img { display: block; }
+
+/* ---- Tags this rebuild changed for document outline (Webflow used h1 here) ---- */
+div.brand-title { margin: 0; line-height: 1.2; }
+h2.page-intro-text { margin: 0; font-size: 52px; font-weight: 600; line-height: 1.2; }
+@media screen and (min-width: 1280px) { h2.page-intro-text { font-size: 62px; } }
+@media screen and (min-width: 1440px) { h2.page-intro-text { font-size: 76px; } }
+@media screen and (max-width: 991px) { h2.page-intro-text { font-size: 44px; } }
+@media screen and (max-width: 767px) { h2.page-intro-text { font-size: 38px; } }
+@media screen and (max-width: 479px) { h2.page-intro-text { font-size: 32px; } }
+
+/* ---- Nav: underline on hover (IX2 "Nav Menu Hover In/Out") ---- */
+.nav-bottom-border { transform: scale(0); transition: transform var(--ix-dur-500) ease-in-out; }
+.nav-menu-wrap:hover .nav-bottom-border { transform: scale(1); }
+
+/* ---- Nav dropdowns (IX2 "Nav Dropdown V2 Open/Close"; webflow.js w--open) ---- */
+.nav-dropdown-icon-v2 { color: var(--main); transition: color var(--ix-dur-500) ease, transform var(--ix-dur-500) ease; }
+.nav-dropdown.w--open .nav-dropdown-icon-v2 { color: var(--cta); transform: rotate(180deg); }
+.nav-dropdown.w--open > .nav-dropdown-list-v2 { display: block; }
+@media screen and (min-width: 992px) {
+  .nav-dropdown-list-v2 { position: absolute; transform-origin: center; }
+  .nav-dropdown.w--open > .nav-dropdown-list-v2 { animation: ix-dropdown-in var(--ix-dur-500) ease both; }
+  .nav-dropdown.is-closing > .nav-dropdown-list-v2 { display: block; animation: ix-dropdown-out var(--ix-dur-500) ease var(--ix-delay-100) both; }
+}
+@keyframes ix-dropdown-in { from { opacity: 0; transform: scale(0.5); } to { opacity: 1; transform: scale(1); } }
+@keyframes ix-dropdown-out { from { opacity: 1; transform: scale(1); } to { opacity: 0; transform: scale(0.5); } }
+
+/* dropdown links (IX2 "Nav Dropdown Link Hover In/Out", incl. the inner flyouts) */
+.nav-dropdown-link,
+.link-block-inner-dropdown .text-block,
+.link-block-inner-dropdown .icon-2 { transition: transform var(--ix-dur-500) ease; }
+.dropdown-border-line { transition: opacity var(--ix-dur-500) ease; }
+.nav-dropdown-link-block:hover .nav-dropdown-link,
+.nav-dropdown-link-block.dropdown:hover .text-block,
+.nav-dropdown-link-block.dropdown:hover .icon-2 { transform: translateX(20px); }
+.nav-dropdown-link-block:hover .dropdown-border-line { opacity: 1; }
+.nav-dropdown-link-block.dropdown .dropdown-list { display: none; }
+.nav-dropdown-link-block.dropdown:hover .dropdown-list,
+.nav-dropdown-link-block.dropdown .w--open > .dropdown-list { display: flex; }
+
+/* ---- Mobile menu (webflow.js w-nav, data-animation="over-left", 400ms) ---- */
+.w-nav-overlay [data-nav-menu-open] { transform: translateX(-100%); transition: transform var(--ix-dur-400) ease; }
+.w-nav-overlay [data-nav-menu-open].is-shown { transform: translateX(0); }
+
+/* ---- Primary button (IX2 "Button Hover In/Out", "… White V") ---- */
+.primary-button-block .button-icon,
+.primary-button-block .primary-button-link {
+  transition: transform var(--ix-dur-500) ease, background-color var(--ix-dur-500) ease;
+}
+.primary-button-block .button-icon.left { transform: scale(0.5); }
+.primary-button-block:hover .button-icon.left { transform: scale(1); background-color: var(--cta); }
+.primary-button-block:hover .button-icon.right { transform: scale(0.5); transition-timing-function: var(--ix-ease-swift); }
+.primary-button-block:hover .primary-button-link { background-color: var(--cta); }
+
+/* ---- Outline button (IX2 "Outline Button Hover In/Out", "… V2" on the hero) ---- */
+.outline-button-link .outline-button-icon,
+.outline-button-link .outline-button-content {
+  transition: transform var(--ix-dur-500) ease, opacity var(--ix-dur-500) ease, background-color var(--ix-dur-500) ease;
+}
+.outline-button-link .outline-button-icon.left { transform: scale(0); opacity: 0; }
+.outline-button-link:hover .outline-button-icon.left { transform: scale(1); opacity: 1; }
+.outline-button-link:hover .outline-button-icon.right { transform: scale(0); transition-timing-function: var(--ix-ease-swift); }
+.outline-button-link:hover .outline-button-content { background-color: var(--main); }
+.outline-button-link.padding-60px:hover .outline-button-content { background-color: var(--cta); }
+
+/* ---- Brand-word marquee (IX2 "Brand Logo Move Animation", 20s loop) ---- */
+.brand-logo-single-item-wrap { animation: ix-marquee var(--ix-marquee) linear infinite; }
+@keyframes ix-marquee { from { transform: translateX(0); } to { transform: translateX(-100%); } }
+
+/* ---- Play icon pulse (IX2 "Video Play Icon", loop) ---- */
+[data-ix="pulse"] { animation: ix-pulse var(--ix-pulse) linear infinite; }
+@keyframes ix-pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
+
+/* ---- Scroll-into-view reveals ---- */
+.w-mod-js [data-ix="text"] {
+  transform: translateY(130%) skew(-10deg, 6deg);
+  transition: transform var(--ix-dur-1200) var(--ix-ease-out-cubic);
+}
+.w-mod-js [data-ix="slide-up"] {
+  opacity: 0;
+  transform: translateY(100px);
+  transition: opacity var(--ix-dur-1000) var(--ix-ease-out-quart), transform var(--ix-dur-1000) var(--ix-ease-out-quart);
+}
+.w-mod-js [data-ix="grow"] {
+  opacity: 0;
+  transform: scale(0.75);
+  transition: opacity var(--ix-dur-1000) var(--ix-ease-out-quart), transform var(--ix-dur-1000) var(--ix-ease-out-quart);
+}
+.w-mod-js [data-ix="img-scale"] { transform: scale(1.3); transition: transform var(--ix-dur-2500) ease; }
+.w-mod-js [data-ix="divider"] { width: 0; transition: width var(--ix-dur-1000) var(--ix-ease-in-cubic); }
+.w-mod-js [data-ix="img-reveal"] { display: block; }
+.w-mod-js [data-ix="img-reveal"] .image-overlay-inner { transition: width var(--ix-dur-1500) var(--ix-ease-in-quad) var(--ix-delay-200), height var(--ix-dur-1500) var(--ix-ease-in-quad) var(--ix-delay-200); }
+
+.w-mod-js [data-ix="text"].is-in,
+.w-mod-js [data-ix="slide-up"].is-in,
+.w-mod-js [data-ix="grow"].is-in,
+.w-mod-js [data-ix="img-scale"].is-in { opacity: 1; transform: none; }
+.w-mod-js [data-ix="divider"].is-in { width: 100%; }
+.w-mod-js [data-ix="img-reveal"].is-in .image-overlay-inner { width: 0; height: 0; }
+.w-mod-js [data-ix="img-reveal"].ix-done { display: none; }
+/* Team photo hover after its reveal finished: back to the short hover transition */
+.w-mod-js .our-team-image.ix-done { transition: transform var(--ix-dur-600) ease; }
+.w-mod-js .our-team-image-block:hover .our-team-image.ix-done { transform: scale(1.05); }
+
+/* ---- Hero slider: content in/out per slide (IX2 "Slide In / Slide Out Animation") ---- */
+.hero-slider-block .w-slide { transition: opacity var(--ix-dur-1000) ease, visibility var(--ix-dur-1000); }
+.hero-slider-block .w-slide:not(.is-active) { opacity: 0; visibility: hidden; }
+.hero-single-slider-block :is(.subtitle-text, .page-intro-text.text-white, .section-description.text-white, .outline-button-link) {
+  transform: translateY(130%) skew(-10deg, 6deg);
+  transition: transform var(--ix-dur-800) ease;
+}
+.hero-single-slider-block.is-active :is(.subtitle-text, .page-intro-text.text-white, .section-description.text-white, .outline-button-link) {
+  transform: none;
+  transition-delay: var(--ix-delay-1200);
+}
+.hero-single-slider-block .hero-slider-inner-block { opacity: 0; transition: opacity var(--ix-dur-500) ease; }
+.hero-single-slider-block.is-active .hero-slider-inner-block { opacity: 1; transition-duration: var(--ix-dur-0); transition-delay: var(--ix-delay-1200); }
+.hero-single-slider-block .hero-image-overlay-v2 { display: block; width: 100%; transition: width var(--ix-dur-800) ease; }
+.hero-single-slider-block.is-active .hero-image-overlay-v2 { width: 0; transition-duration: var(--ix-dur-1200); transition-delay: var(--ix-delay-1200); }
+
+/* ---- Testimonial slider (webflow.js w-slider, "slide", 500ms) ---- */
+.testimonial-slider-block .w-slide { transition: transform var(--ix-dur-500) ease; }
+.testimonial-slider-block.is-snapping .w-slide { transition: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .brand-logo-single-item-wrap, [data-ix="pulse"] { animation: none; }
+  .w-mod-js [data-ix] { opacity: 1; transform: none; transition: none; }
+  .w-mod-js [data-ix="divider"] { width: 100%; }
+  .w-mod-js [data-ix="img-reveal"] { display: none; }
+  .hero-single-slider-block :is(.subtitle-text, .page-intro-text.text-white, .section-description.text-white, .outline-button-link) { transform: none; transition: none; }
+  .hero-single-slider-block .hero-slider-inner-block { opacity: 1; }
+  .hero-single-slider-block .hero-image-overlay-v2 { display: none; }
+}
+
+/* ======================================================================================
+ * Homepage comparison versions (/home-v1…v3, "real people, not bots" ideas, 2026-11-11).
+ * Only what the reused Webflow pieces lack; everything else is site.css as-is.
+ * ====================================================================================== */
+
+/* Idea 2: header phone, "Talk to a technician". The desktop bar has little spare room (measured
+   against the replica header: 169px free ≥1440, 90px at 1280, 61px at 1100, ~0 at 992), so:
+   ≥1440 label + number · 1100–1439 the round call icon (its aria-label carries the words) ·
+   992–1099 hidden · ≤991 in the mobile menu, label + number. */
+.header-phone { display: flex; align-items: center; gap: 12px; color: var(--main); text-decoration: none; }
+.header-phone-icon { flex: none; display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; border-radius: 100px; background-color: var(--main); }
+.header-phone-icon svg { width: 20px; height: 20px; }
+.header-phone-text { display: flex; flex-direction: column; line-height: 1.25; }
+.header-phone-label { font-size: 14px; color: var(--text); }
+.header-phone-number { font-size: 18px; font-weight: 600; transition: color var(--wf-dur-500ms); }
+.header-phone:hover .header-phone-number { color: var(--cta); }
+@media screen and (min-width: 992px) {
+  .header-buttton-block.has-phone { display: flex; align-items: center; gap: 12px; }
+  .header-buttton-block.has-phone .header-phone-text { display: none; }
+}
+@media screen and (min-width: 992px) and (max-width: 1099px) { .header-buttton-block.has-phone .header-phone { display: none; } }
+@media screen and (min-width: 1440px) {
+  .header-buttton-block.has-phone { gap: 24px; }
+  .header-buttton-block.has-phone .header-phone-icon { display: none; }
+  .header-buttton-block.has-phone .header-phone-text { display: flex; text-align: right; }
+}
+
+/* Ideas 1 and 10: three-card rows (blog card grid) */
+.ix-card-label { margin-bottom: 8px; color: var(--main); font-size: 16px; font-weight: 600; line-height: 1.4; }
+.service-title.fonr-size-36px.ix-static-title:hover { color: inherit; }
+.ix-card-row .service-single-card-v2-block { padding-top: 30px; }
+.ix-card-row .service-short-summary { margin-bottom: 20px; }
+.ix-card-row .ix-card-button { margin-top: auto; padding-left: 10px; }
+.ix-card-quote { margin: 0 0 24px; padding: 16px 20px; border-radius: 8px; background-color: var(--wf-e5e8f2); }
+/* blockquotes here reset Webflow's default blockquote (grey left border + padding) */
+.ix-card-quote blockquote { margin: 0; padding: 0; border: 0; color: var(--main); font-size: 18px; line-height: 1.45; }
+.ix-card-quote figcaption { margin-top: 10px; font-size: 15px; text-align: left; }
+@media screen and (min-width: 1440px) { .ix-card-row .ix-card-button { padding-left: 15px; } }
+
+/* Idea 4: five team members (3 + 2 centred) and the extra lines under each name */
+@media screen and (min-width: 768px) {
+  .our-team-cms-list-block.is-five { grid-template-columns: repeat(6, 1fr); }
+  .our-team-cms-list-block.is-five > * { grid-column: span 2; }
+  .our-team-cms-list-block.is-five > :nth-child(4) { grid-column: 2 / span 2; }
+}
+.our-team-detail { max-width: 320px; margin: 0; font-size: 16px; line-height: 1.5; text-align: center; }
+p.our-team-detail:first-of-type { margin-top: 8px; }
+.our-team-detail strong { color: var(--main); font-weight: 600; }
+.our-team-detail.is-muted { font-size: 15px; }
+
+/* Idea 5: testimonial callouts above the carousel */
+.ix-callouts { margin-top: 50px; }
+.wcu-single-card.ix-callout { flex-direction: column; justify-content: space-between; gap: 20px; margin: 0; }
+.ix-callout .testimonial-summary { margin: 0; padding: 0; border: 0; font-size: 22px; line-height: 1.4; }
+.ix-callout figcaption { margin: 0; text-align: left; }
+@media screen and (max-width: 767px) { .ix-callouts { margin-top: 30px; } .ix-callout .testimonial-summary { font-size: 20px; } }
+
+/* Idea 6: titled WCU card */
+.wcu-single-card.ix-wcu-titled { flex-direction: column; }
+.ix-wcu-titled .about-us-list-title { margin: 0; }
+
+/* Idea 8: blog byline */
+.ix-byline { margin-bottom: 6px; }

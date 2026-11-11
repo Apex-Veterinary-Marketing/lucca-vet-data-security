@@ -1,0 +1,630 @@
+---
+// Lucca homepage — a 1:1 rebuild of the live Webflow homepage (www.lucca.vet, published
+// 2026-11-09). Markup and class names are Webflow's (styled by styles/site.css); copy is the live
+// page's. Webflow's interactions are data-ix attributes run by WebflowInteractions.astro:
+//   text = rise + unskew, slide-up / grow = Webflow's built-in "Slide in bottom" / "Grow in",
+//   img-reveal = the two-panel wipe, img-scale = 1.3→1 zoom-out, divider = width grow, pulse = play icon.
+// The team, services, testimonials and blog cards were Webflow CMS lists; they are data arrays
+// here until the inner pages (and their collections) are rebuilt.
+//
+// `ideas` switches on the "real people, not bots" trust-signal ideas (2026-11-11) for the
+// /home-v1, /home-v2 and /home-v3 comparison pages. With no ideas (pages/index.astro) the output
+// is the live replica, unchanged. Every idea reuses the live page's own components and classes.
+//   1  "How support works" strip under the hero          6  what "24/7" means (WCU card)
+//   2  header phone "Talk to a technician" + CTA renames  7  published support promise band
+//   3  real team photo in place of the stock photo        8  blog bylines
+//   4  team section moved up and expanded                 9  "Meet your support team" band
+//   5  testimonial callouts above the carousel            10 trust signals (rating, founder, certs)
+// "[X]" / "[…]" marks a fact the client has to supply before any of this goes live.
+import { Image } from "astro:assets";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import ButtonPrimary from "../ButtonPrimary.astro";
+import ButtonOutline from "../ButtonOutline.astro";
+import Icon from "../Icon.astro";
+import CtaBand from "./CtaBand.astro";
+import CardRow from "./CardRow.astro";
+import TeamSection from "./TeamSection.astro";
+import { scheduleCallUrl } from "../../data/navigation";
+import { getSiteInfo } from "../../lib/data/site";
+import whyTheNameLucca from "../../assets/home/why-the-name-lucca.jpeg";
+import whyItSupport from "../../assets/home/why-it-support.jpg";
+import whoWeAre from "../../assets/home/who-we-are.webp";
+import mattKane from "../../assets/team/matt-kane.jpg";
+import backupsFail from "../../assets/blog/backups-fail-after-ransomware.jpg";
+import cyberInsurance from "../../assets/blog/cyber-insurance.jpg";
+import cyberCrisis from "../../assets/blog/cyber-crisis-team.jpg";
+
+export interface Props {
+  ideas?: number[];
+  /** Comparison pages only: tab title suffix, e.g. "Version 1". Also makes the page noindex. */
+  version?: string;
+}
+const { ideas = [], version } = Astro.props;
+const has = (n: number) => ideas.includes(n);
+const site = await getSiteInfo();
+
+const ctaLabel = has(2) ? "Talk to Our Team" : undefined;
+
+const heroSlides = [
+  {
+    subtitle: "Excellence in IT Support",
+    title: "We Help Vets By Supporting Their Technology",
+    text: "Real technicians, not bots. When you call, a person who knows your clinic picks up.",
+    cta: { label: ctaLabel ?? "Schedule A Call", href: scheduleCallUrl, newTab: true },
+    video: "hero-1",
+  },
+  {
+    subtitle: "Explore Our Free Ebooks",
+    title: "Check Out Our Library Of Free eBooks!",
+    text: "Explore our free eBook library with resources on protecting your veterinary practice, maintaining digital privacy, and optimizing IT infrastructure.",
+    cta: { label: "Find Your Free eBook Now", href: "/ebooks", newTab: false },
+    video: "hero-2",
+  },
+];
+
+const marqueeWords = [
+  { word: "Innovate", black: false },
+  { word: "Consultation", black: true },
+  { word: "Business", black: false },
+  { word: "Empower", black: true },
+];
+
+const services = [
+  {
+    title: "Networking Assistance",
+    icon: "networking-assistance",
+    summary: "Improve your clinic’s internal network with our customized veterinary IT networking services. From system configuration to access control, we ensure your network is secure, fast, and reliable.",
+  },
+  {
+    title: "Cloud Storage",
+    icon: "cloud-storage",
+    summary: "Secure your veterinary data in the cloud with encrypted, remote storage options. We’ll migrate your records safely to a trusted cloud environment—giving you access, convenience, and peace of mind.",
+  },
+  {
+    title: "Infrastructure Building",
+    icon: "infrastructure-building",
+    summary: "Whether you’re building an IT system from the ground up or upgrading your current setup, LUCCA Veterinary Data Security delivers reliable hardware and software solutions to strengthen your foundation and support efficient care.",
+  },
+  {
+    title: "IT Integration",
+    icon: "it-integration",
+    summary: "Modernize your veterinary operations by integrating the latest apps and systems. Our IT solutions streamline data management and daily workflows so your team can focus on patient care—not tech issues.",
+  },
+  {
+    title: "Security Monitoring",
+    icon: "security-monitoring",
+    summary: "Protect your veterinary practice from cyber threats with 24/7 security monitoring. Our IT specialists proactively detect and respond to risks, keeping your patient records and business data safe from unauthorized access.",
+  },
+];
+
+// Paragraph breaks inside a quote are written as "\n" (the live slides used <br>).
+const testimonials = [
+  {
+    author: "Joe - Apex Veterinary Specialists",
+    quote: "We recently encountered a difficult application install for which we reached out to Lucca for assistance. Lucca took COMPLETE ownership of this project - working on this even when we were out of the office. Lucca was able to install, troubleshoot, train, as well as a liaise between myself and the applications Customer Support team. This process would've taken months to complete alone or with any other tech support company. Proactive and diligent in his work, Lucca was able to complete this in a week. Lucca consistently gives us the confidence and quality of on-site support.",
+  },
+  {
+    author: "VETGirl Team",
+    quote: "Clint is always a pleasure to work with as a content provider! He has done both a VETgirl webinar and a blog for us, and we’re looking forward to doing more with him in the future. He knows his stuff and is always a consummate professional. Clint is easy to work with as he is very responsive and not only met all our deadlines but got us everything we asked for early. Cybersecurity is something our veterinary profession needs to understand better, and Clint’s expertise has provided our VETgirl ELITE subscribers with important content that is easy to understand.",
+  },
+  {
+    author: "Laurena - Central Veterinary Services",
+    quote: "By switching to Lucca and reducing our monthly IT service costs, it allowed us to re-invest that money back into the practice in the form of better equipment, which hopefully in the long-term will also reduce our need for technical support.",
+  },
+  {
+    author: "Michael, PM - Brookside Veterinary Hospital",
+    quote: "From the first conversation, through implementation and monitoring, Lucca Vet has been the epitome of professionalism. Utilizing the Lucca Vet Data Security suite of services has allowed us, as a small family owned vet hospital, to operate in similar fashion to larger competitors and allow peace of mind that our data, business and family are in safe hands. I would recommend them to anyone looking for data security, world class expertise, or simply peace of mind for their hospital.",
+  },
+  {
+    author: "Dr. Amanda Della Penna - Family Vet Care Center",
+    quote: "Lucca made moving our IT services practically seamless. They are fast, attentive, lovely to deal with, and overall just a great company. I am so glad we made the switch and am very pleased with their services. They are truly a cut above the rest.",
+  },
+  {
+    author: "Tianna, PM",
+    quote: "Lucca Vet has been fantastic for our IT needs at our veterinary hospital. As you can imagine, in a veterinary hospital, if something IT related breaks it needs to be fixed five minutes ago. Lucca Vet has 100% been there for us EVERY. SINGLE. TIME. we have had any issue and had it resolved shortly. They also work with our hospital’s schedule for updates and maintenance, even working late night or over a weekend so we don’t have any downtime during business hours, and are available pretty much 24/7 any time we have ever needed them.",
+  },
+  {
+    author: "Killian Lenahen, VMD",
+    quote: "Lucca Vet is AWESOME! We have been working with Clint and Logan on our IT set up for our new start up veterinary practice and we couldn't be happier. We were very overwhelmed initially after consulting with a few other IT companies. However, after speaking to the Lucca Vet team, we immediately felt at ease. Clint and Logan are thorough, informative and communicative. They have been fantastic introducing us to new vendors and coordinating with our current vendors. I would highly recommend Lucca Vet to any practice needing support for their IT/data security needs.",
+  },
+  {
+    author: "Kelli Space DVM",
+    quote: "I am very confident in having Lucca vet take care of our IT needs. My experiences have only been positive and I would highly recommend them.\n\nThey are competent, responsive, and great people to work with.",
+  },
+  {
+    author: "Josh - Campeche Cove All Animal Hospital",
+    quote: "Clint is as generous in sharing his expertise with veterinary practices as he is knowledgeable of the contemporary data security environment. He has the uncommon gift for communicating his insights in a way that is simultaneously comprehensible, comprehensive, and actionable.",
+  },
+  {
+    author: "Jamie, Animal Medical Care Center",
+    quote: "We are extremely appreciative for the opportunity to have the Lucca Veterinary Data Security team on our side. Prior to Lucca we used local onsite IT companies and were very nervous to make the switch to a remote company. I would say now, 100% I am beyond grateful that we made the switch. Lucca has gone above and beyond to help us with everything we could possibly need. We have ZERO regrets and are very thankful.",
+  },
+  {
+    author: "Sean Kase - Blue River",
+    quote: "Just reaching out to say thank you for everything you've done for all the clinics in the Blue River network.\nLucca is an exemplary model of IT support in this industry. Lucca has always been in high demand for our clinics, which is a reflection of your good work and Lucca's intentional business model to exclusively provide vet support. I have witnessed a wide array of approaches to supporting vets from various MSPs in my role here, and you all are ahead of the game by far.",
+  },
+];
+
+// Idea 5: the human details already in the testimonials, pulled out word for word.
+const callouts = [
+  { quote: "…even working late night or over a weekend so we don’t have any downtime during business hours, and are available pretty much 24/7 any time we have ever needed them.", author: "Tianna, PM" },
+  { quote: "Clint and Logan are thorough, informative and communicative.", author: "Killian Lenahen, VMD" },
+  { quote: "Lucca took COMPLETE ownership of this project - working on this even when we were out of the office.", author: "Joe - Apex Veterinary Specialists" },
+];
+
+const posts = [
+  {
+    title: "What to Do When Backups Fail After Ransomware Hits Your Veterinary Practice",
+    href: "/blog-post/what-to-do-when-backups-fail-after-ransomware-hits-your-veterinary-practice",
+    image: backupsFail,
+    summary: "Backups are vital for protecting veterinary data, but they can fail during ransomware attacks. This article explains how clinics can recover from backup failures, restore critical systems, and strengthen cybersecurity to prevent future data loss.",
+  },
+  {
+    title: "Cyber Insurance for Veterinary Practices: What's Covered and What's Not",
+    href: "/blog-post/cyber-insurance-for-veterinary-practices-whats-covered-and-whats-not",
+    image: cyberInsurance,
+    summary: "When the computers shut down at a veterinary hospital, everything from X-rays to billing stops. Increasingly, those disruptions are not accidental; they’re the work of cybercriminals.",
+  },
+  {
+    title: "What Every Veterinary Practice Team Member Must Do in a Cyber Crisis",
+    href: "/blog-post/what-every-veterinary-practice-team-member-must-do-in-a-cyber-crisis-g5u1t",
+    image: cyberCrisis,
+    summary: "When a cyberattack strikes a veterinarypractice, the damage can unfold quickly. A ransomware attack can freeze accessto medical records mid-surgery. A phishing email can hand over sensitive clientpayment details to criminals in minutes. Even a simple malware attack can grindscheduling software to a halt, leaving teams unable to track appointments orbill patients. These threats are not theoretical. They have already struckmedical and veterinary practices across the country, leaving staff scramblingin the middle of patient care.",
+  },
+];
+
+// Idea 1 (+7 for the named contact): who answers, how fast, what happens next.
+const supportSteps = [
+  {
+    label: "01 · Who answers",
+    title: "A Real Technician",
+    text: has(7)
+      ? `Every clinic gets a named point of contact at Lucca. Call ${site.phoneNumber} and a person who knows your clinic picks up, not a bot or a phone tree.`
+      : `Call ${site.phoneNumber} and a Lucca technician picks up: a person who knows veterinary software, not a bot or a phone tree.`,
+  },
+  {
+    label: "02 · How fast",
+    title: "A Human Reply in [X] Minutes",
+    text: "During business hours a person replies within [X] minutes. After hours, our monitoring pages the on-call Lucca technician.",
+  },
+  {
+    label: "03 · What happens next",
+    title: "Fixed, Then Followed Up",
+    text: "Your technician owns the issue until it’s resolved, keeps you posted along the way, and checks back to confirm everything works.",
+  },
+];
+
+// Idea 10: trust only people earn. Rating and founder facts are the live site's; certifications are placeholders.
+const trustCards = [
+  {
+    label: "Google Reviews",
+    title: "Google Rating",
+    googleRating: site.googleRating,
+    text: "Clinics review the people they work with, by name:",
+    quote: {
+      text: "He has the uncommon gift for communicating his insights in a way that is simultaneously comprehensible, comprehensive, and actionable.",
+      author: "Josh, Campeche Cove All Animal Hospital, on Clint",
+    },
+    button: site.addressLink ? { href: site.addressLink, label: "Read Our Reviews", newTab: true } : undefined,
+  },
+  {
+    label: "Our Founder",
+    title: "Clint Latham, J.D.",
+    text: "International speaker on veterinary technology, author of 150+ articles on cybersecurity and IT in veterinary hospitals, and developer of CE accredited courses for Patterson Veterinary University.",
+    button: { href: "/our-team/clint-latham-j-d", label: "Meet Clint" },
+  },
+  {
+    label: "Certifications",
+    title: "Certified, Named Staff",
+    text: "[Certification] held by [team member]. [Certification] held by [team member]. [Certification] held by [team member].",
+    button: { href: "/about-us", label: "Meet The Team" },
+  },
+];
+
+// Idea 8: bylines. The live posts carry no author, so these are placeholders.
+const byline = "By [Author name], [Role at Lucca]";
+---
+
+<BaseLayout
+  title={version ? `Veterinary IT Support & Cybersecurity | LUCCA (${version})` : "Veterinary IT Support & Cybersecurity | LUCCA Data Security"}
+  titleTemplate="full"
+  description="Protect your veterinary clinic with expert IT support and data security. LUCCA helps animal hospitals stay compliant, secure, and efficient—book a free call today."
+  noindex={!!version}
+  headerPhone={has(2)}
+>
+  <section class="hero-section-v2">
+    <div class="hero-v2-inner-block">
+      <div class="hero-slider-block w-slider" data-slider="fade" data-delay="3000" data-duration="1000" data-nav-spacing="12" aria-label="Highlights" role="region">
+        <div class="hero-slider-mask w-slider-mask">
+          {heroSlides.map((slide, i) => (
+            <div class="hero-single-slider-block w-slide" role="group" aria-label={`${i + 1} of ${heroSlides.length}`}>
+              <div class="slider-inner">
+                <div class="w-layout-blockcontainer main-container w-container">
+                  <div class="hero-slider-inner-block">
+                    <div class="hero-content-block">
+                      <div class="section-heading-block max-width-558px">
+                        <div class="section-subtitle-block">
+                          <div class="subtitle-text">{slide.subtitle}</div>
+                        </div>
+                        <div class="section-title-block margin-top-15px max-width-558px">
+                          {i === 0 ? (
+                            <h1 class="page-intro-text text-white">{slide.title}</h1>
+                          ) : (
+                            <h2 class="page-intro-text text-white">{slide.title}</h2>
+                          )}
+                        </div>
+                        <div class="section-description-block margin-top-20px">
+                          <p class="section-description text-white">{slide.text}</p>
+                        </div>
+                      </div>
+                      <div class="hero-button-block">
+                        <ButtonOutline href={slide.cta.href} label={slide.cta.label} newTab={slide.cta.newTab} hero />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="hero-bg-image-block">
+                  <div class="hero-bg-video w-background-video w-background-video-atom">
+                    <video autoplay loop muted playsinline preload={i === 0 ? "auto" : "none"} poster={`/videos/${slide.video}-poster.jpg`} aria-hidden="true">
+                      <source src={`/videos/${slide.video}.mp4`} type="video/mp4" />
+                      <source src={`/videos/${slide.video}.webm`} type="video/webm" />
+                    </video>
+                  </div>
+                  <div class="hero-image-overlay"></div>
+                  <div class="hero-image-overlay-v2"></div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div class="hero-slider-nav w-slider-nav w-round"></div>
+      </div>
+      <div class="hero-image-overlay-v2"></div>
+    </div>
+  </section>
+
+  {has(1) && (
+    <CardRow subtitle="How Support Works" cards={supportSteps}>
+      <Fragment slot="title">A <span class="title-highlight">Real Person</span>, Start to Finish</Fragment>
+    </CardRow>
+  )}
+
+  {has(7) && !has(1) && (
+    <CtaBand href={scheduleCallUrl} label="Talk to Our Team" newTab>
+      Our promise: a human replies within [X] minutes during business hours, and every clinic gets a named point of contact.
+    </CtaBand>
+  )}
+
+  {has(4) && <TeamSection expanded />}
+
+  {has(9) && has(4) && (
+    <CtaBand href="/meet-your-support-team" label="Meet The Team">
+      Meet your support team: who they are, what they do, and a real ticket from call to fix.
+    </CtaBand>
+  )}
+
+  {has(10) && (
+    <CardRow subtitle="Why Clinics Trust Us" cards={trustCards}>
+      <Fragment slot="title">Trust You Can <span class="title-highlight">Put a Name To</span></Fragment>
+    </CardRow>
+  )}
+
+  <CtaBand href="/ebooks" label="Click Here">Check out our library of FREE eBooks!<br /></CtaBand>
+
+  <section class="brand-logo-section" aria-hidden="true">
+    <div class="brand-logo-inner-block">
+      {[0, 1].map(() => (
+        <div class="brand-logo-single-item-wrap">
+          {marqueeWords.map((m) => (
+            <>
+              <div class="brand-logo-item-block">
+                <div class:list={["brand-title", { "text-black": m.black }]}>{m.word}</div>
+              </div>
+              <div class="brand-star-icon-block">
+                <div class="brand-star-icon w-embed"><Icon name="star" /></div>
+              </div>
+            </>
+          ))}
+        </div>
+      ))}
+    </div>
+  </section>
+
+  <section class="about-us-section white-bg section-y-axis-gap">
+    <div class="about-us-inner-block">
+      <div class="w-layout-blockcontainer main-container w-container">
+        <div class="about-us-wrapper-v2">
+          <div class="about-us-content-wrap">
+            <div class="section-heading-block">
+              <div class="section-subtitle-block">
+                <div class="subtitle-text" data-ix="text">About Us</div>
+              </div>
+              <div class="section-title-block margin-top-15px max-width-488px">
+                <h2 class="section-title" data-ix="text">The Best Veterinary IT Support In The Nation</h2>
+              </div>
+              <div class="section-description-block margin-12px">
+                <p class="section-description" data-ix="text">At LUCCA Veterinary Data Security, our experienced IT professionals provide tailored veterinary IT support services to help you uphold high standards in technology and cybersecurity—without disrupting your daily operations. Discover how our solutions can protect and enhance your veterinary practice.</p>
+              </div>
+            </div>
+            <div class="about-us-button-block" data-ix="grow" data-ix-delay="400">
+              <ButtonPrimary href="#why-choose-lucca" label="Why Choose Lucca" />
+            </div>
+          </div>
+          <div class="about-us-image-wrap">
+            <div class="about-us-image-inner">
+              <div class="image-overlay-block" data-ix="img-reveal">
+                <div class="image-overlay-inner"></div>
+                <div class="image-overlay-inner v2"></div>
+              </div>
+              <a href="https://www.youtube.com/watch?v=VyI0UXaJMPc" class="lightbox-link-2 w-inline-block w-lightbox" data-youtube="VyI0UXaJMPc" aria-label="Play video: Why the name Lucca Veterinary Data Security">
+                <div class="play-button-wrap-2">
+                  <div class="play-icon">
+                    <div class="code-embed w-embed" data-ix="pulse"><Icon name="play" /></div>
+                  </div>
+                </div>
+                <Image
+                  src={whyTheNameLucca}
+                  alt="Why the name Lucca Veterinary Data Security"
+                  widths={[500, 800, 1080, 1600]}
+                  sizes="(max-width: 767px) 100vw, (max-width: 991px) 728px, 940px"
+                  class="image-107"
+                />
+              </a>
+            </div>
+            <div class="about-us-bg-shape-block">
+              <div class="about-us-upper-shape-block"></div>
+              <div class="about-us-lower-shape-block"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  {!has(4) && <TeamSection />}
+
+  {has(9) && !has(4) && (
+    <CtaBand href="/meet-your-support-team" label="Meet The Team">
+      Meet your support team: who they are, what they do, and a real ticket from call to fix.
+    </CtaBand>
+  )}
+
+  <section class="service-section light-bg">
+    <div class="w-layout-blockcontainer main-container no-margin-bottom w-container">
+      <div class="service-wrapper">
+        <div class="section-heading-block align-center">
+          <div class="section-subtitle-block">
+            <div class="subtitle-text" data-ix="text">Services</div>
+          </div>
+          <div class="section-title-block margin-top-15px">
+            <h2 class="section-title" data-ix="text"><span class="title-highlight">Wide Range</span> of Veterinary IT Services</h2>
+          </div>
+          <div class="section-description-block margin-12px max-width-644px">
+            <p class="section-description" data-ix="text">Reliable veterinary IT services are essential for the long-term success of your animal hospital or clinic. With today’s fast-paced digital environment, keeping your systems secure and up to date is critical. However, managing this alongside patient care can be overwhelming.<br />‍<br />That’s where our expert IT team comes in. With years of experience in veterinary-specific tech support, we’re here to simplify your practice’s digital needs.</p>
+          </div>
+        </div>
+        <div class="service-content-block">
+          <div class="services-cms-list-wrap">
+            <div class="blog-cms-list-inner">
+              <div class="blog-cms-items-block test">
+                {services.map((service) => (
+                  <div class="service-single-item-card sticky">
+                    <div class="blog-content-left-column">
+                      <div class="blog-title-and-serial-number-block">
+                        <div class="blog-title-link-v2 w-inline-block">
+                          <h3 class="blog-title">{service.title}</h3>
+                        </div>
+                      </div>
+                      <div class="blog-summary-block">
+                        <p class="blog-summary">{service.summary}</p>
+                      </div>
+                    </div>
+                    <div class="blog-content-right-column">
+                      <div class="service-icon-block-v2" data-ix="grow" data-ix-delay="400">
+                        <img src={`/images/services/${service.icon}.svg`} loading="lazy" alt="" class="service-image" />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="service-top-button-block center-content" data-ix="slide-up" data-ix-delay="300">
+          <ButtonPrimary href="/it-services" label="View All Services" />
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <CtaBand href="/ce-accredited-course" label="Learn More">
+    {has(10)
+      ? "Sign up for our Race Approved CE Course, Veterinary IT Fundamentals, created by Clint Latham, J.D.!"
+      : "Sign up for our Race Approved CE Course featuring Veterinary IT Fundamentals!"}
+  </CtaBand>
+
+  <section class="wcu-section bg-f2f4f8 section-y-axis-gap">
+    <div class="w-layout-blockcontainer main-container w-container">
+      <div class="wcu-wrapper">
+        <div class="wcu-image-block">
+          {has(3) ? (
+            <Image src={mattKane} alt="Matt Kane, Lucca’s Director of Client Services" width={577} height={690} fit="cover" position="top" widths={[577, 1154]} sizes="(max-width: 767px) 100vw, 577px" class="wcu-image" data-ix="img-scale" />
+          ) : (
+            <Image src={whyItSupport} alt="Veterinary team working on a computer" widths={[577]} sizes="(max-width: 767px) 100vw, 577px" class="wcu-image" data-ix="img-scale" />
+          )}
+          <div class="image-overlay-block" data-ix="img-reveal">
+            <div class="image-overlay-inner"></div>
+            <div class="image-overlay-inner v2"></div>
+          </div>
+        </div>
+        <div class="wcu-content-block">
+          <div class="section-heading-block">
+            <div class="section-title-block">
+              <h2 class="section-title" data-ix="text">Why Do I Need Veterinary IT Support?</h2>
+            </div>
+          </div>
+          <div class="wcu-devider" data-ix="divider"></div>
+          <div class="wcu-single-card">
+            <p class="wcu-card-summary" data-ix="text">Managing a veterinary clinic involves more than patient care—it also means protecting your business’s digital assets. With rising cyber threats and evolving software, it’s vital to have a professional IT team in your corner.</p>
+          </div>
+          <div class="wcu-single-card margin-top">
+            <p class="wcu-card-summary" data-ix="text">Once a third party accesses your veterinary data, they can immediately use that information for ill intent. Protect your business’ and your patients’ data. Consult with our experts to determine whether our suite of support services is suited for your practice.</p>
+          </div>
+          {has(6) && (
+            <div class="wcu-single-card margin-top ix-wcu-titled">
+              <h3 class="about-us-list-title" data-ix="text">What “24/7” Means at Lucca</h3>
+              <p class="wcu-card-summary" data-ix="text">Monitoring tools watch your network around the clock, and when something trips, an on-call Lucca technician is paged. The automation never sleeps, and a person is always accountable.</p>
+            </div>
+          )}
+          <div class="about-us-button-block" data-ix="grow" data-ix-delay="400">
+            <ButtonPrimary href={scheduleCallUrl} label={ctaLabel ?? "Schedule Consultation"} newTab />
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="why-choose-lucca" class="testimonial-section section-y-axis-gap">
+    <div class="w-layout-blockcontainer main-container margin-bottom w-container">
+      <div class="testimonial-wrapper">
+        <div class="section-heading-block align-center">
+          <div class="section-subtitle-block">
+            <div class="subtitle-text" data-ix="text">Testimonial</div>
+          </div>
+          <div class="section-title-block margin-top-15px">
+            <h2 class="section-title" data-ix="text">Why <span class="title-highlight">Our Clients</span> Love Us</h2>
+          </div>
+          <div class="section-description-block margin-12px max-width-644px">
+            <p class="section-description" data-ix="text">Hear from our satisfied clients who have experienced the transformative power of Lucca's IT solutions.</p>
+          </div>
+        </div>
+        {has(5) && (
+          <div role="list" class="service-cms-list-item-block ix-callouts">
+            {callouts.map((c, i) => (
+              <figure role="listitem" class="wcu-single-card ix-callout" data-ix="slide-up" data-ix-delay={String(200 + i * 100)}>
+                <blockquote class="testimonial-summary">“{c.quote}”</blockquote>
+                <figcaption class="testimonial-author-name">{c.author}</figcaption>
+              </figure>
+            ))}
+          </div>
+        )}
+        <div class="testimonial-content-wrap display-block">
+          <div class="testimonial-content-block">
+            <div class="testimonial-slider-block w-slider" data-slider="slide" data-delay="4000" data-duration="500" data-nav-spacing="3" aria-label="Client testimonials" role="region">
+              <div class="testimonial-slider-mask w-slider-mask">
+                {testimonials.map((t, i) => (
+                  <div class="testimonial-single-slide w-slide" role="group" aria-label={`${i + 1} of ${testimonials.length}`}>
+                    <div class="testimonial-slider-inner">
+                      <p class="testimonial-summary" data-ix={i === 0 ? "slide-up" : undefined} data-ix-delay={i === 0 ? "400" : undefined}>
+                        "{t.quote.split("\n").map((line, j) => (j === 0 ? line : <><br />{line}</>))}"
+                      </p>
+                      <div class="testimonial-author-info-block">
+                        <h3 class="testimonial-author-name" data-ix={i === 0 ? "slide-up" : undefined} data-ix-delay={i === 0 ? "500" : undefined}>{t.author}</h3>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <button type="button" class="slider-button-block left w-slider-arrow-left" aria-label="Previous testimonial" data-ix="slide-up" data-ix-delay="700">
+                <div class="slider-arrow-icon w-embed"><Icon name="slider-prev" /></div>
+              </button>
+              <button type="button" class="slider-button-block right w-slider-arrow-right" aria-label="Next testimonial" data-ix="slide-up" data-ix-delay="700">
+                <div class="slider-arrow-icon w-embed"><Icon name="slider-next" /></div>
+              </button>
+              <div class="none w-slider-nav w-round w-num"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="who-we-are-section section-y-axis-gap">
+    <div class="who-we-are-inner-block">
+      <div class="w-layout-blockcontainer main-container w-container">
+        <div class="who-we-are-wrapper">
+          <div class="who-we-are-image-block">
+            <Image
+              src={whoWeAre}
+              alt="5 Simple Steps to Protect Your Hospital eBook cover"
+              widths={[500, 800]}
+              sizes="(max-width: 767px) 100vw, (max-width: 991px) 728px, 800px"
+              class="who-we-are-image"
+              data-ix="img-scale"
+            />
+            <div class="image-overlay-block" data-ix="img-reveal">
+              <div class="image-overlay-inner"></div>
+              <div class="image-overlay-inner v2"></div>
+            </div>
+          </div>
+          <div class="who-we-are-content-block">
+            <div class="section-heading-block">
+              <div class="section-title-block margin-top-15px">
+                <h2 class="section-title font-weight-500" data-ix="text">We Are Committed to Being <span class="title-highlight">Trusted Partners</span> in Your Digital Journey</h2>
+              </div>
+            </div>
+            <div class="who-we-are-list-block">
+              <div class="about-us-single-list-block" data-ix="text">
+                <div class="about-us-list-title-check-icon-block">
+                  <h3 class="about-us-list-title">The Lucca Difference</h3>
+                </div>
+                <p class="about-us-summary">At LUCCA Veterinary Data Security, we know every veterinary clinic is unique. That’s why our IT support services are custom-built to meet your specific needs—from data protection to system upgrades. You don’t have to be an IT expert to secure your practice—we’re here to help you every step of the way.</p>
+              </div>
+              <div class="about-us-single-list-block" data-ix="text">
+                <div class="about-us-list-title-check-icon-block">
+                  <h3 class="about-us-list-title">Get in Touch</h3>
+                </div>
+                <p class="about-us-summary">Get in touch with our team today to discuss the specifics of your practice and establish your IT goals. Once we know what you want to achieve and maintain, we will apply our expertise and resources in meeting your demands. Discover how our specialty veterinary IT services can further improve your success.Learn the simple steps to start protecting your hospital for FREE!</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="blog-v2-section section-y-axis-gap">
+    <div class="w-layout-blockcontainer main-container w-container">
+      <div class="blog-wrapper">
+        <div class="section-heading-and-button-block">
+          <div class="section-heading-block">
+            <div class="section-subtitle-block">
+              <div class="subtitle-text" data-ix="text">Our Blogs</div>
+            </div>
+            <div class="section-title-block margin-top-15px max-width-554px">
+              <h2 class="section-title" data-ix="text">Insights and <span class="title-highlight">Updates</span> From Lucca</h2>
+            </div>
+          </div>
+          <div class="blog-button-wrap-v2" data-ix="slide-up" data-ix-delay="200">
+            <ButtonPrimary href="/blog" label="View All Blogs" />
+          </div>
+        </div>
+        <div class="blog-content-block-v2">
+          <div class="service-cms-list-wrapper w-dyn-list">
+            <div role="list" class="service-cms-list-item-block w-dyn-items">
+              {posts.map((post) => (
+                <div role="listitem" class="service-cms-items w-dyn-item">
+                  <div class="service-single-card-v2-block">
+                    <div class="blog-box-image-wrapper" data-ix="grow" data-ix-delay="400">
+                      <Image src={post.image} alt="" widths={[400, 800]} sizes="(max-width: 767px) 100vw, (max-width: 991px) 50vw, 400px" class="blog-item-image" />
+                    </div>
+                    <div class="service-content-block-v2">
+                      {has(8) && <div class="ix-card-label ix-byline" data-ix="text">{byline}</div>}
+                      <a href={post.href} class="service-title-link w-inline-block">
+                        <h3 class="service-title fonr-size-36px" data-ix="text">{post.title}</h3>
+                      </a>
+                    </div>
+                    <div class="service-short-summary" data-ix="text">{post.summary}</div>
+                    <div class="service-card-button-wrap" data-ix="grow" data-ix-delay="500">
+                      <ButtonOutline href={post.href} label="Read More" />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</BaseLayout>

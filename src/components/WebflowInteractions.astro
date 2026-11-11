@@ -1,0 +1,304 @@
+---
+// What webflow.js and the Webflow interactions (IX2) did on the live Lucca site, rebuilt without
+// jQuery/webflow.js. Mounted once in BaseLayout. Visual states live in styles/site-custom.css.
+//   - [data-ix] scroll reveals: add .is-in when the element enters the viewport (once), after its
+//     data-ix-delay (ms) — Webflow's SCROLL_INTO_VIEW with offset 0%
+//   - nav: desktop dropdowns open on hover (and click), mobile menu slides in over the page (≤991px)
+//   - sliders: hero = fade, 3000ms autoplay, 1000ms; testimonials = slide, 4000ms autoplay, 500ms,
+//     infinite, arrows + swipe
+//   - lightbox: a[data-youtube] opens the YouTube video (Webflow lightbox markup/CSS)
+//   - pop-up: shown 3s after load unless the `alert` cookie is set; sets it for 1 day
+---
+
+<script>
+  const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  // ---------------------------------------------------------------- scroll reveals
+  const IX_DONE_AFTER: Record<string, number> = { "img-reveal": 1800, "img-scale": 2600 };
+  const reveal = (el: HTMLElement) => {
+    const delay = Number(el.dataset.ixDelay || 0);
+    window.setTimeout(() => {
+      el.classList.add("is-in");
+      const done = IX_DONE_AFTER[el.dataset.ix || ""];
+      if (done) window.setTimeout(() => el.classList.add("ix-done"), done);
+    }, delay);
+  };
+  // A "text" element starts translated 130% down, often clipped away by its block's overflow, so
+  // IntersectionObserver would never see it; watch its (unmoved) parent instead, as Webflow
+  // effectively did by measuring the element's unclipped box.
+  const watched = new Map<Element, HTMLElement[]>();
+  const io = new IntersectionObserver(
+    (entries) => {
+      for (const entry of entries) {
+        if (!entry.isIntersecting) continue;
+        io.unobserve(entry.target);
+        watched.get(entry.target)?.forEach(reveal);
+      }
+    },
+    { threshold: 0 }
+  );
+  document.querySelectorAll<HTMLElement>("[data-ix]:not([data-ix='pulse'])").forEach((el) => {
+    if (reduceMotion) { el.classList.add("is-in", "ix-done"); return; }
+    const target = el.dataset.ix === "text" && el.parentElement ? el.parentElement : el;
+    if (!watched.has(target)) { watched.set(target, []); io.observe(target); }
+    watched.get(target)!.push(el);
+  });
+
+  // ---------------------------------------------------------------- nav dropdowns
+  const desktop = window.matchMedia("(min-width: 992px)");
+  const dropdowns = [...document.querySelectorAll<HTMLElement>("[data-dropdown]")];
+  const closeTimers = new WeakMap<HTMLElement, number>();
+  const setOpen = (dd: HTMLElement, open: boolean) => {
+    const btn = dd.querySelector<HTMLButtonElement>(".nav-dropdown-icon-v2");
+    window.clearTimeout(closeTimers.get(dd));
+    if (open) {
+      dd.classList.remove("is-closing");
+      dd.classList.add("w--open");
+    } else if (dd.classList.contains("w--open")) {
+      dd.classList.remove("w--open");
+      if (desktop.matches && !reduceMotion) {
+        dd.classList.add("is-closing");
+        closeTimers.set(dd, window.setTimeout(() => dd.classList.remove("is-closing"), 600));
+      }
+    }
+    btn?.setAttribute("aria-expanded", String(open));
+  };
+  for (const dd of dropdowns) {
+    dd.addEventListener("mouseenter", () => desktop.matches && setOpen(dd, true));
+    dd.addEventListener("mouseleave", () => desktop.matches && setOpen(dd, false));
+    dd.querySelector(".nav-dropdown-icon-v2")?.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const open = !dd.classList.contains("w--open");
+      dropdowns.forEach((other) => other !== dd && setOpen(other, false));
+      setOpen(dd, open);
+    });
+    dd.addEventListener("focusout", (e) => {
+      if (!dd.contains(e.relatedTarget as Node)) setOpen(dd, false);
+    });
+  }
+  // inner flyouts (Network Hardware, Dental X-Ray) on touch: first tap opens, second follows the link
+  document.querySelectorAll<HTMLElement>(".inner-dropdown").forEach((inner) => {
+    inner.querySelector(".link-block-inner-dropdown")?.addEventListener("click", (e) => {
+      if (desktop.matches || inner.classList.contains("w--open")) return;
+      e.preventDefault();
+      inner.classList.add("w--open");
+    });
+  });
+  document.addEventListener("click", (e) => {
+    for (const dd of dropdowns) if (!dd.contains(e.target as Node)) setOpen(dd, false);
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") dropdowns.forEach((dd) => setOpen(dd, false));
+  });
+
+  // ---------------------------------------------------------------- mobile menu (w-nav)
+  const nav = document.querySelector<HTMLElement>(".w-nav");
+  const menu = nav?.querySelector<HTMLElement>(".w-nav-menu");
+  const menuBtn = nav?.querySelector<HTMLButtonElement>(".w-nav-button");
+  if (nav && menu && menuBtn) {
+    const home = { parent: menu.parentElement!, next: menu.nextSibling };
+    let overlay: HTMLElement | null = null;
+    const close = () => {
+      if (!overlay) return;
+      const o = overlay;
+      overlay = null;
+      menuBtn.classList.remove("w--open");
+      menuBtn.setAttribute("aria-expanded", "false");
+      menu.classList.remove("is-shown");
+      window.setTimeout(() => {
+        menu.removeAttribute("data-nav-menu-open");
+        home.parent.insertBefore(menu, home.next);
+        o.remove();
+      }, reduceMotion ? 0 : 400);
+    };
+    const open = () => {
+      overlay = document.createElement("div");
+      overlay.className = "w-nav-overlay";
+      overlay.style.display = "block";
+      overlay.style.height = `${document.documentElement.scrollHeight}px`;
+      nav.appendChild(overlay);
+      menu.setAttribute("data-nav-menu-open", "");
+      overlay.appendChild(menu);
+      menuBtn.classList.add("w--open");
+      menuBtn.setAttribute("aria-expanded", "true");
+      requestAnimationFrame(() => requestAnimationFrame(() => menu.classList.add("is-shown")));
+    };
+    menuBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      overlay ? close() : open();
+    });
+    document.addEventListener("click", (e) => {
+      if (overlay && !menu.contains(e.target as Node)) close();
+    });
+    document.addEventListener("keydown", (e) => e.key === "Escape" && close());
+    desktop.addEventListener("change", (e) => e.matches && close());
+  }
+
+  // ---------------------------------------------------------------- sliders (w-slider)
+  document.querySelectorAll<HTMLElement>(".w-slider[data-slider]").forEach((slider) => {
+    const mode = slider.dataset.slider; // "fade" | "slide"
+    const delay = Number(slider.dataset.delay || 3000);
+    const duration = Number(slider.dataset.duration || 500);
+    const spacing = Number(slider.dataset.navSpacing || 3);
+    const slides = [...slider.querySelectorAll<HTMLElement>(".w-slide")];
+    const n = slides.length;
+    const dotsWrap = slider.querySelector<HTMLElement>(".w-slider-nav");
+    let current = 0;
+    let busy = false;
+
+    const dots = slides.map((_, i) => {
+      // Webflow's own dot markup (its CSS targets `.w-slider-nav.w-round > div`)
+      const dot = document.createElement("div");
+      dot.className = "w-slider-dot";
+      dot.setAttribute("role", "button");
+      dot.tabIndex = 0;
+      dot.setAttribute("aria-label", `Show slide ${i + 1} of ${n}`);
+      // webflow.js applies data-nav-spacing as each dot's side margins
+      dot.style.marginLeft = dot.style.marginRight = `${spacing}px`;
+      dot.addEventListener("click", () => { go(i); restart(); });
+      dot.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" || e.key === " ") { e.preventDefault(); go(i); restart(); }
+      });
+      dotsWrap?.appendChild(dot);
+      return dot;
+    });
+
+    const paint = () => {
+      slides.forEach((s, i) => {
+        const active = i === current;
+        s.classList.toggle("is-active", active);
+        s.setAttribute("aria-hidden", String(!active));
+        s.toggleAttribute("inert", !active);
+      });
+      dots.forEach((d, i) => {
+        d.classList.toggle("w-active", i === current);
+        d.setAttribute("aria-pressed", String(i === current));
+      });
+    };
+    const place = (offset: number, extra: Map<HTMLElement, number> = new Map()) => {
+      slides.forEach((s) => {
+        s.style.transform = `translateX(${(offset + (extra.get(s) ?? 0)) * 100}%)`;
+      });
+    };
+
+    if (mode === "fade") {
+      // Webflow stacks fade slides on top of each other
+      slides.forEach((s, i) => { s.style.transform = `translateX(${-i * 100}%)`; });
+    } else {
+      place(0);
+    }
+
+    const go = (target: number, dir: 1 | -1 = target > current ? 1 : -1) => {
+      if (busy || target === current) return;
+      if (mode === "fade" || reduceMotion) {
+        current = (target + n) % n;
+        if (mode !== "fade") place(-current);
+        paint();
+        return;
+      }
+      busy = true;
+      const to = (target + n) % n;
+      if (dir === 1 && to === 0 && current === n - 1) {
+        // wrap forward: slide 0 rides in from the right of the last slide
+        const first = slides[0];
+        slider.classList.add("is-snapping");
+        place(-current, new Map([[first, n]]));
+        void slider.offsetWidth;
+        slider.classList.remove("is-snapping");
+        place(-n, new Map([[first, n]]));
+      } else if (dir === -1 && to === n - 1 && current === 0) {
+        // wrap backward: the last slide rides in from the left of slide 0
+        const last = slides[n - 1];
+        slider.classList.add("is-snapping");
+        place(0, new Map([[last, -n]]));
+        void slider.offsetWidth;
+        slider.classList.remove("is-snapping");
+        place(1, new Map([[last, -n]]));
+      } else {
+        place(-to);
+      }
+      current = to;
+      paint();
+      window.setTimeout(() => {
+        slider.classList.add("is-snapping");
+        place(-current);
+        void slider.offsetWidth;
+        slider.classList.remove("is-snapping");
+        busy = false;
+      }, duration);
+    };
+
+    let timer = 0;
+    const restart = () => {
+      window.clearInterval(timer);
+      if (!reduceMotion) timer = window.setInterval(() => go(current + 1, 1), delay + duration);
+    };
+    slider.querySelector(".w-slider-arrow-right")?.addEventListener("click", () => { go(current + 1, 1); restart(); });
+    slider.querySelector(".w-slider-arrow-left")?.addEventListener("click", () => { go(current - 1, -1); restart(); });
+
+    let startX = 0;
+    slider.addEventListener("touchstart", (e) => { startX = e.touches[0].clientX; }, { passive: true });
+    slider.addEventListener("touchend", (e) => {
+      const dx = e.changedTouches[0].clientX - startX;
+      if (Math.abs(dx) < 40) return;
+      dx < 0 ? go(current + 1, 1) : go(current - 1, -1);
+      restart();
+    });
+
+    paint();
+    restart();
+  });
+
+  // ---------------------------------------------------------------- YouTube lightbox
+  document.querySelectorAll<HTMLAnchorElement>("a[data-youtube]").forEach((link) => {
+    link.addEventListener("click", (e) => {
+      e.preventDefault();
+      const backdrop = document.createElement("div");
+      backdrop.className = "w-lightbox-backdrop";
+      backdrop.setAttribute("role", "dialog");
+      backdrop.setAttribute("aria-modal", "true");
+      backdrop.setAttribute("aria-label", link.getAttribute("aria-label") || "Video");
+      backdrop.innerHTML =
+        '<div class="w-lightbox-content"><div class="w-lightbox-view"><div class="w-lightbox-frame">' +
+        '<figure class="w-lightbox-figure lucca-lightbox-video"><iframe allow="autoplay; fullscreen; encrypted-media; picture-in-picture" allowfullscreen title="YouTube video"></iframe></figure>' +
+        '</div></div><button type="button" class="w-lightbox-control w-lightbox-close" aria-label="Close"></button></div>';
+      backdrop.querySelector("iframe")!.src = `https://www.youtube-nocookie.com/embed/${link.dataset.youtube}?autoplay=1`;
+      const close = () => {
+        backdrop.remove();
+        document.documentElement.classList.remove("w-lightbox-noscroll");
+        document.removeEventListener("keydown", onKey);
+        link.focus();
+      };
+      const onKey = (ev: KeyboardEvent) => ev.key === "Escape" && close();
+      backdrop.addEventListener("click", (ev) => {
+        if (!(ev.target as HTMLElement).closest(".lucca-lightbox-video")) close();
+      });
+      document.addEventListener("keydown", onKey);
+      document.body.appendChild(backdrop);
+      document.documentElement.classList.add("w-lightbox-noscroll");
+      backdrop.querySelector<HTMLButtonElement>(".w-lightbox-close")!.focus();
+    });
+  });
+
+  // ---------------------------------------------------------------- "Struggling with Your Clinic's IT?" pop-up
+  const popup = document.getElementById("pop-up-wrapper");
+  if (popup) {
+    const seen = document.cookie.split("; ").some((c) => c.startsWith("alert="));
+    const hide = () => { popup.style.display = "none"; };
+    popup.querySelectorAll("[data-popup-close]").forEach((el) => el.addEventListener("click", hide));
+    document.addEventListener("keydown", (e) => e.key === "Escape" && hide());
+    if (!seen) {
+      window.setTimeout(() => {
+        popup.style.display = "flex";
+        document.cookie = `alert=true; max-age=${60 * 60 * 24}; path=/; SameSite=Lax`;
+      }, 3000);
+    }
+  }
+</script>
+
+<style is:global>
+  /* The lightbox video: Webflow sized its embed to 940×528 inside the frame. */
+  .lucca-lightbox-video { width: min(940px, 90vw); aspect-ratio: 940 / 528; margin: 0; }
+  .lucca-lightbox-video iframe { width: 100%; height: 100%; border: 0; display: block; }
+  .w-lightbox-backdrop .w-lightbox-view { opacity: 1; }
+</style>

@@ -1,0 +1,65 @@
+---
+// A centered section heading over a row of three cards, built only from the live homepage's own
+// pieces: the section heading + subtitle pill, the blog section's card grid
+// (.service-cms-list-item-block / .service-single-card-v2-block) and its outline button.
+// Used by the trust-signal variants for "How support works" (idea 1) and the trust signals (idea 10).
+import ButtonOutline from "../ButtonOutline.astro";
+
+export interface Card {
+  label: string;
+  title: string;
+  /** Google rating card: the title is "<rating> ★ Rating", the rating kept live by the reviews badge script (Footer.astro). */
+  googleRating?: number;
+  text: string;
+  /** Optional quote under the text, with its attribution. */
+  quote?: { text: string; author: string };
+  button?: { href: string; label: string; newTab?: boolean };
+}
+export interface Props {
+  subtitle: string;
+  cards: Card[];
+  id?: string;
+}
+const { subtitle, cards, id } = Astro.props;
+---
+
+<section id={id} class="blog-v2-section section-y-axis-gap ix-card-row">
+  <div class="w-layout-blockcontainer main-container w-container">
+    <div class="blog-wrapper">
+      <div class="section-heading-block align-center">
+        <div class="section-subtitle-block">
+          <div class="subtitle-text" data-ix="text">{subtitle}</div>
+        </div>
+        <div class="section-title-block margin-top-15px max-width-644px">
+          <h2 class="section-title" data-ix="text"><slot name="title" /></h2>
+        </div>
+      </div>
+      <div class="blog-content-block-v2">
+        <div role="list" class="service-cms-list-item-block">
+          {cards.map((card, i) => (
+            <div role="listitem" class="service-single-card-v2-block">
+              <div class="service-content-block-v2">
+                <div class="ix-card-label" data-ix="slide-up" data-ix-delay={String(200 + i * 100)}>{card.label}</div>
+                <h3 class="service-title fonr-size-36px ix-static-title" data-ix="text">
+                  {card.googleRating ? <><span data-google-rating>{card.googleRating.toFixed(1)}</span> ★ Rating</> : card.title}
+                </h3>
+                <div class="service-short-summary" data-ix="text">{card.text}</div>
+                {card.quote && (
+                  <figure class="ix-card-quote" data-ix="slide-up" data-ix-delay="400">
+                    <blockquote>“{card.quote.text}”</blockquote>
+                    <figcaption>{card.quote.author}</figcaption>
+                  </figure>
+                )}
+              </div>
+              {card.button && (
+                <div class="service-card-button-wrap ix-card-button" data-ix="grow" data-ix-delay="500">
+                  <ButtonOutline href={card.button.href} label={card.button.label} newTab={card.button.newTab} />
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  </div>
+</section>

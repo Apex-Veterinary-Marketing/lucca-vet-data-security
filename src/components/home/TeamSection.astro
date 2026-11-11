@@ -1,0 +1,131 @@
+---
+// Homepage "Our Team" section. Default = the live page's section (3 members, Webflow CMS-list
+// markup). `expanded` = idea 4 of the trust-signal variants: all five team members, plus each
+// person's part in a support case, years in vet IT and a personal detail. Personal details are
+// from the live team-detail pages (www.lucca.vet/our-team/*); "[X] years" is a placeholder.
+import { Image } from "astro:assets";
+import ButtonPrimary from "../ButtonPrimary.astro";
+import clintLatham from "../../assets/team/clint-latham.png";
+import loganKrollGunter from "../../assets/team/logan-kroll-gunter.png";
+import mattKane from "../../assets/team/matt-kane.jpg";
+import tannerDavis from "../../assets/team/tanner-davis.png";
+import keelanBell from "../../assets/team/keelan-bell.png";
+
+export interface Props {
+  /** Idea 4: five members with support-case role, years and a personal detail. */
+  expanded?: boolean;
+}
+const { expanded = false } = Astro.props;
+
+const allMembers = [
+  {
+    name: "Clint Latham, J.D.",
+    role: "Director of Veterinary Data Security",
+    href: "/our-team/clint-latham-j-d",
+    photo: clintLatham,
+    inACase: "Leads security: ransomware protection, backups and data recovery.",
+    personal: "Founded Lucca. Dog dad to two senior Yorkies.",
+  },
+  {
+    name: "Logan Kroll-Gunter",
+    role: "Director of Customer Success",
+    href: "/our-team/logan-kroll-gunter",
+    photo: loganKrollGunter,
+    inACase: "Learns how your practice works and shapes the fix around it.",
+    personal: "Mom to a 14-year-old miniature dachshund.",
+  },
+  {
+    name: "Matt Kane",
+    role: "Director of Client Services",
+    href: "/our-team/matt-kane",
+    photo: mattKane,
+    inACase: "Keeps your issue moving until the problem is actually solved.",
+    personal: "Hangs out with his Belgian Malinois, Oliver.",
+  },
+  {
+    name: "Tanner Davis",
+    role: "Network Administrator",
+    href: "/our-team/tanner-davis",
+    photo: tannerDavis,
+    inACase: "Your network, firewall and internet connection.",
+    personal: "Shares his home with a dog and a cat.",
+  },
+  {
+    name: "Keelan Bell",
+    role: "Veterinary Technology Specialist",
+    href: "/our-team/keelan-bell",
+    photo: keelanBell,
+    inACase: "Hands-on help with clinic computers, software and devices.",
+    personal: "Born in South Africa; grew up traveling the world in an old Land Rover.",
+  },
+];
+// The live homepage shows three (Webflow CMS list limit).
+const members = expanded ? allMembers : allMembers.slice(0, 3);
+---
+
+<section class="our-team-section bg-f2f4f8 section-y-axis-gap">
+  <div class="w-layout-blockcontainer main-container w-container">
+    <div class="our-team-wrapper">
+      <div class="section-heading-block align-center">
+        <div class="section-subtitle-block">
+          <div class="subtitle-text" data-ix="text">Our Team</div>
+        </div>
+        <div class="section-title-block margin-top-15px max-width-605px">
+          {expanded ? (
+            <h2 class="section-title" data-ix="text">The <span class="title-highlight">People</span> Who Pick Up When You Call</h2>
+          ) : (
+            <h2 class="section-title" data-ix="text">Dedicated <span class="title-highlight">Professionals</span> With a Diverse Expertise</h2>
+          )}
+        </div>
+        {expanded && (
+          <div class="section-description-block margin-12px max-width-644px">
+            <p class="section-description" data-ix="text">Real people who know veterinary software. Here’s who works on your clinic’s IT, and what each of them does when you call.</p>
+          </div>
+        )}
+      </div>
+      <div class="our-team-content-block center-content">
+        <div class="our-team-cms-list-wrap w-dyn-list">
+          <div role="list" class:list={["our-team-cms-list-block w-dyn-items", { "is-five": expanded }]}>
+            {members.map((member) => (
+              <div role="listitem" class="our-team-items w-dyn-item">
+                <div class="our-team-single-block">
+                  <div class="our-team-image-block">
+                    <a href={member.href} class="our-team-image-link w-inline-block" tabindex="-1" aria-hidden="true">
+                      <Image
+                        src={member.photo}
+                        alt={member.name}
+                        widths={[400, 800]}
+                        sizes="(max-width: 767px) 100vw, (max-width: 991px) 50vw, 400px"
+                        class="our-team-image"
+                        data-ix="img-scale"
+                      />
+                    </a>
+                    <div class="image-overlay-block" data-ix="img-reveal">
+                      <div class="image-overlay-inner"></div>
+                      <div class="image-overlay-inner v2"></div>
+                    </div>
+                  </div>
+                  <div class="our-team-content-wrap">
+                    <a href={member.href} class="our-team-name-text-link w-inline-block">
+                      <h3 class="our-team-name" data-ix="text">{member.name}</h3>
+                    </a>
+                    <div class="our-team-designation" data-ix="text">{member.role}</div>
+                    {expanded && (
+                      <>
+                        <p class="our-team-detail" data-ix="slide-up" data-ix-delay="200"><strong>In a support case:</strong> {member.inACase}</p>
+                        <p class="our-team-detail is-muted" data-ix="slide-up" data-ix-delay="300">[X] years in vet IT · {member.personal}</p>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+      <div class="our-team-button-block" data-ix="slide-up" data-ix-delay="300">
+        <ButtonPrimary href="/about-us" label="View All Members" />
+      </div>
+    </div>
+  </div>
+</section>

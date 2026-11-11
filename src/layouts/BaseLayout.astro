@@ -7,10 +7,7 @@ import SeoHead from "../components/SeoHead.astro";
 import SchemaGraph from "../components/SchemaGraph.astro";
 import Header from "../components/Header.astro";
 import Footer from "../components/Footer.astro";
-import MobileCallbar from "../components/MobileCallbar.astro";
-import Modal from "../components/Modal.astro";
-import GravityFormEmbed from "../components/GravityFormEmbed.astro";
-import ReputationWidget from "../components/ReputationWidget.astro";
+import WebflowInteractions from "../components/WebflowInteractions.astro";
 import AccessibilityWidget from "../components/AccessibilityWidget.astro";
 import MotionLayer from "../components/MotionLayer.astro";
 import { getSiteSchemaNodes, buildBreadcrumb, normalizeIds } from "../lib/schema/organization";
@@ -20,6 +17,8 @@ import tokensRaw from "../styles/tokens.css?raw";
 import "../styles/tokens.css";
 import "../styles/icon-font.css";
 import "../styles/fonts.css";
+import "../styles/site.css";
+import "../styles/site-custom.css";
 import type { ImageMetadata } from "astro";
 
 // Preload the two highest-impact font FILES (not just the stylesheet) for
@@ -29,8 +28,8 @@ import type { ImageMetadata } from "astro";
 // `?url` resolves to the real hashed build output path. Swapping the
 // typeface in styles/fonts.css? Update these two paths to match (or drop
 // the preload if the new choice doesn't warrant it) — see that file.
-import interLatin400 from "@fontsource/inter/files/inter-latin-400-normal.woff2?url";
-import interLatin700 from "@fontsource/inter/files/inter-latin-700-normal.woff2?url";
+import outfitLatin400 from "@fontsource/outfit/files/outfit-latin-400-normal.woff2?url";
+import outfitLatin600 from "@fontsource/outfit/files/outfit-latin-600-normal.woff2?url";
 
 export interface Props {
   title: string; // page-specific title segment (e.g. "Contact Us") unless titleTemplate="full"
@@ -49,9 +48,11 @@ export interface Props {
   webPage?: Record<string, any>;
   /** Breadcrumb label for this page (defaults to `title`); false = no breadcrumb. */
   breadcrumb?: string | false;
+  /** Header shows the phone number labelled "Talk to a technician" (homepage comparison versions). */
+  headerPhone?: boolean;
 }
 
-const { title, description, canonical, ogImage, ogImageAlt, ogType, titleTemplate = "page", noindex, schemaGraph, webPage, breadcrumb } = Astro.props;
+const { title, description, canonical, ogImage, ogImageAlt, ogType, titleTemplate = "page", noindex, schemaGraph, webPage, breadcrumb, headerPhone } = Astro.props;
 const site = await getSiteInfo();
 
 // Title: see the Props doc comment above for the two modes.
@@ -131,8 +132,15 @@ const graph = normalizeIds(
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="preload" href={interLatin400} as="font" type="font/woff2" crossorigin />
-    <link rel="preload" href={interLatin700} as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href={outfitLatin400} as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href={outfitLatin600} as="font" type="font/woff2" crossorigin />
+    <!-- Webflow's own flag: interaction start states (styles/site-custom.css) apply only with JS on -->
+    <script is:inline>document.documentElement.classList.add("w-mod-js");</script>
+    {site.gtmId && !isPreviewBuild && (
+      <script is:inline define:vars={{ gtmId: site.gtmId }}>
+        (function (w, d, s, l, i) { w[l] = w[l] || []; w[l].push({ "gtm.start": new Date().getTime(), event: "gtm.js" }); var f = d.getElementsByTagName(s)[0], j = d.createElement(s), dl = l != "dataLayer" ? "&l=" + l : ""; j.async = true; j.src = "https://www.googletagmanager.com/gtm.js?id=" + i + dl; f.parentNode.insertBefore(j, f); })(window, document, "script", "dataLayer", gtmId);
+      </script>
+    )}
     <SeoHead
       title={finalTitle}
       description={finalDescription}
@@ -149,46 +157,33 @@ const graph = normalizeIds(
     <MotionLayer />
   </head>
   <body>
+    {site.gtmId && !isPreviewBuild && (
+      <noscript><iframe src={`https://www.googletagmanager.com/ns.html?id=${site.gtmId}`} height="0" width="0" style="display:none;visibility:hidden" title="Google Tag Manager"></iframe></noscript>
+    )}
     <a class="skip-link" href="#main-content">Skip to content</a>
-    <Header />
-    <main id="main-content">
-      <slot />
-    </main>
-    <Footer />
-    <MobileCallbar />
-
-    <Modal id="contact-modal">
-      <GravityFormEmbed formId="contact" context="modal" heading="Contact Us" />
-    </Modal>
-    <ReputationWidget />
+    <!-- Lucca: the live Webflow page shell (page-wrapper > header / main-wrapper / footer) -->
+    <div class="page-wrapper">
+      <Header phone={headerPhone} />
+      <main id="main-content" class="main-wrapper">
+        <slot />
+      </main>
+      <Footer />
+    </div>
+    <WebflowInteractions />
     <AccessibilityWidget />
 
     <style is:global>
-      :root { box-sizing: border-box; }
-      *, *::before, *::after { box-sizing: inherit; }
-      body { margin: 0; font-family: var(--font-body); color: var(--text); line-height: 1.5; }
-      img { max-width: 100%; height: auto; display: block; }
-      /* Base typography + focus — token-driven so re-skinning never touches components.
-         :where() keeps specificity at zero so any component rule still wins. Sections on
-         dark backgrounds (Hero, PageHeaderBanner, CtaBand) set color: inherit on their
-         headings; a new dark section must do the same. */
-      :where(h1, h2, h3, h4, h5, h6) { color: var(--heading); font-family: var(--font-heading); }
-      :where(a) { color: var(--main); }
+      /* Lucca: page typography, spacing and images come from styles/site.css (the ported Webflow
+         stylesheet), so the skeleton's own global defaults are gone. Only the accessibility helpers
+         and the open-modal scroll lock remain (the Paw Haus method). */
+      /* astro:assets writes width/height attributes; Webflow images had none, so a class that
+         sets only a width would otherwise keep the attribute height. Class rules still win. */
+      img { height: auto; }
       :focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
-      /* No top padding here (2026-09-08) — the header is fixed+transparent
-         by default (see Header.astro), so Hero/PageHeaderBanner need to
-         render full-bleed behind it, not pushed below it. Each of those
-         self-manages a top padding of var(--header-height) internally so
-         their own content still clears the header while their background
-         extends up to the viewport edge. Every page opens with one of the
-         two (404 included) — a page that didn't would render its content
-         under the fixed header. */
-      main { padding-block-start: 0; padding-block-end: 0; }
-      @media (max-width: 900px) { main { padding-block-end: var(--callbar-height); } }
       body.has-open-modal { overflow: hidden; }
 
       .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
-      .skip-link { position: absolute; inset-inline-start: -999px; inset-block-start: 0; z-index: 200; background: var(--main); color: var(--on-main); padding: var(--space-sm) var(--space-md); }
+      .skip-link { position: absolute; inset-inline-start: -999px; inset-block-start: 0; z-index: 1000; background: var(--main); color: var(--on-main); padding: var(--space-sm) var(--space-md); }
       .skip-link:focus { inset-inline-start: 0; }
     </style>
   </body>

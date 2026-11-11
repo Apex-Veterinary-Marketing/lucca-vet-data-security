@@ -44,29 +44,29 @@
 :root {
   /* --- Neutrals & text --------------------------------------------------- */
   --white: #ffffff; /* page/card surface; text on dark */
-  --text: #333333; /* body copy */
-  --text-muted: #606f87; /* captions, meta, placeholders — brand hue, always
+  --text: #4b4b4b; /* body copy — Lucca: Webflow --text-color, exact */
+  --text-muted: #6b6993; /* captions, meta, placeholders — brand hue, always
                       visibly lighter than --text, AA on every light bg */
   --light-grey: #d1d1d1; /* neutral borders/dividers */
 
   /* --- Backgrounds (very soft, brand-tinted) ----------------------------- */
-  --solid-bg: #f3f5f8; /* soft section/card/hover background (opaque) */
-  --base-bg: #e8ecf17a; /* same tint @48% — for layering over images/other bgs */
-  --alt-bg: #1f304bcc; /* dark brand tint @80% — dark section over an image/pattern
+  --solid-bg: #f2f4f8; /* soft section/card/hover background (opaque) — Lucca: Webflow --bg-color, exact */
+  --base-bg: #e9e9f17a; /* same tint @48% — for layering over images/other bgs */
+  --alt-bg: #22204bcc; /* dark brand tint @80% — dark section over an image/pattern
                           (white text stays AA even over a white page) */
 
   /* --- Brand ------------------------------------------------------------- */
-  --main: #16253c; /* primary brand; headings, links, primary buttons */
-  --main-dark: #070c13; /* darkest brand; footer bg, deep sections, hovers */
-  --main-light: #385f99; /* lighter brand; accents, focus ring, link hover */
-  --main-soft: #394b65; /* muted brand; subtle fills, borders on dark */
-  --cta: #008484; /* the action color: primary CTA buttons (white text is AA on it) */
-  --cta-hover: #00191a; /* CTA hover/pressed */
+  --main: #242259; /* primary brand; headings, links, primary buttons */
+  --main-dark: #070712; /* darkest brand; footer bg, deep sections, hovers */
+  --main-light: #4945b5; /* lighter brand; accents, focus ring, link hover */
+  --main-soft: #4b497f; /* muted brand; subtle fills, borders on dark */
+  --cta: #ceac2b; /* the action color: primary CTA buttons (white text is AA on it) */
+  --cta-hover: #dbbe51; /* CTA hover/pressed */
 
   /* --- Translucent siblings & effects ------------------------------------ */
   --white-o85: #ffffffd9; /* white @85% — text on dark, glass panels */
-  --main-o50: #16253c80; /* --main @50% — image scrims, tinted overlays */
-  --main-soft-o50: #394b6580; /* --main-soft @50% */
+  --main-o50: #24225980; /* --main @50% — image scrims, tinted overlays */
+  --main-soft-o50: #4b497f80; /* --main-soft @50% */
   --overlay-color: #00000080; /* black @50% — modal/hero scrim */
   --shadow: #0000001a; /* black @10% — the shadow COLOR (see --shadow-* below) */
 
@@ -78,7 +78,7 @@
    * ---------------------------------------------------------------------- */
   --heading: var(--main); /* h1-h6 color */
   --on-main: var(--white); /* text/icons on --main surfaces */
-  --on-cta: var(--white); /* text/icons on --cta buttons. The generator sets this
+  --on-cta: var(--main-dark); /* text/icons on --cta buttons. The generator sets this
                             to --main-dark instead when the brand accent is too
                             light for white text. */
   --focus-ring: var(--main-light); /* :focus-visible outline color */
@@ -107,7 +107,7 @@
   --space-2xl: 4rem;
 
   /* Type */
-  --font-body: "Inter", system-ui, sans-serif; /* loaded by styles/fonts.css — per-client: swap both, see that file */
+  --font-body: Outfit, sans-serif; /* loaded by styles/fonts.css — per-client: swap both, see that file */
   --font-heading: var(--font-body);
   --font-size-xs: 0.75rem;
   --font-size-sm: 0.875rem;
@@ -176,4 +176,70 @@
   --color-warning: #92400e; /* amber-800ish — warning text/icon */
   --color-warning-bg: #fef3c7; /* amber-100ish — warning background */
   --color-warning-code-bg: #00000014; /* black @8% — inline <code> highlight inside a warning */
+
+  /* Lucca: literal colors from the ported Webflow stylesheet (styles/site.css) */
+  --wf-000000: #000000;
+  --wf-00000000: #00000000;
+  --wf-00000033: #00000033;
+  --wf-0000004d: #0000004d;
+  --wf-00000066: #00000066;
+  --wf-000000e6: #000000e6;
+  --wf-0050bd: #0050bd;
+  --wf-0082f3: #0082f3;
+  --wf-010101: #010101;
+  --wf-0402030d: #0402030d;
+  --wf-08050633: #08050633;
+  --wf-100701: #100701;
+  --wf-10070180: #10070180;
+  --wf-1a1b1fbf: #1a1b1fbf;
+  --wf-20202099: #20202099;
+  --wf-222222: #222222;
+  --wf-2356f6: #2356f6;
+  --wf-333333: #333333;
+  --wf-3898ec: #3898ec;
+  --wf-4b4b4b: #4b4b4b;
+  --wf-4b4b4b4d: #4b4b4b4d;
+  --wf-4f70e633: #4f70e633;
+  --wf-573feb: #573feb;
+  --wf-a4a4a4: #a4a4a4;
+  --wf-c4c2bd: #c4c2bd;
+  --wf-c8c8c8: #c8c8c8;
+  --wf-dddddd: #dddddd;
+  --wf-e1e1e1: #e1e1e1;
+  --wf-e2e2e2: #e2e2e2;
+  --wf-e2e9fe: #e2e9fe;
+  --wf-e5e8f2: #e5e8f2;
+  --wf-ff8c00: #ff8c00;
+  --wf-ffff00: #ffff00;
+  --wf-ffffff: #ffffff;
+  --wf-ffffff66: #ffffff66;
+  /* Lucca: literal timings from the ported Webflow stylesheet */
+  --wf-dur-100ms: .1s;
+  --wf-dur-250ms: .25s;
+  --wf-dur-200ms: .2s;
+  --wf-dur-300ms: .3s;
+  --wf-dur-400ms: .4s;
+  --wf-dur-500ms: .5s;
+  --wf-dur-800ms: .8s;
+  /* Lucca: Webflow interaction (IX2) timings and easings — used by site-custom.css and
+     WebflowInteractions.astro to replay the live site's animations exactly */
+  --ix-dur-0: 0s; /* instant (a step that Webflow ran with no duration) */
+  --ix-dur-400: 400ms;
+  --ix-dur-500: 500ms;
+  --ix-dur-600: 600ms;
+  --ix-dur-800: 800ms;
+  --ix-dur-1000: 1000ms;
+  --ix-dur-1200: 1200ms;
+  --ix-dur-1500: 1500ms;
+  --ix-dur-2500: 2500ms;
+  --ix-delay-100: 100ms;
+  --ix-delay-200: 200ms;
+  --ix-delay-1200: 1200ms;
+  --ix-marquee: 20s; /* brand-word marquee, one full loop */
+  --ix-pulse: 1s; /* play-icon pulse, one loop (500ms up + 500ms down) */
+  --ix-ease-out-cubic: cubic-bezier(0.215, 0.61, 0.355, 1);
+  --ix-ease-out-quart: cubic-bezier(0.165, 0.84, 0.44, 1);
+  --ix-ease-in-quad: cubic-bezier(0.55, 0.085, 0.68, 0.53);
+  --ix-ease-in-cubic: cubic-bezier(0.55, 0.055, 0.675, 0.19);
+  --ix-ease-swift: cubic-bezier(0.77, 0, 0.175, 1); /* button icon shrink */
 }

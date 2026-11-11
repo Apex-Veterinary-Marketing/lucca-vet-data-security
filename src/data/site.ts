@@ -74,38 +74,30 @@ export interface SiteInfo {
   // use e.g. ["LocalBusiness", "ProfessionalService"]. A mobile business
   // also sets mobileVet + serviceAreaOfCoverage (→ areaServed).
   businessSchemaType?: string | string[];
+  gtmId?: string; // Google Tag Manager container — loaded only on production-origin builds
 }
 
-// Placeholder example data — replace during client intake. Kept non-empty
-// so components/pages have something real to render while the skeleton is
-// being built and reviewed.
+// Lucca Veterinary Data Security — from the live site (www.lucca.vet, 2026-11-10): contact page,
+// footer, Google reviews badge and GTM snippet. Street address isn't published on the live site
+// (only the Google Maps listing in Grand Junction, CO), so none is set here.
 export const siteInfo: SiteInfo = {
-  practiceName: "[Practice Name]",
-  phoneNumber: "(000) 000-0000",
-  email: "hello@example.com",
-  address: "123 Main St",
-  addressLine2: "[City, ST 00000]",
-  bookingUrl: "/appointment-request",
-  bookingLabel: "Book Now",
-  cityState: "[City, ST]",
-  hours: "<p>Mon&ndash;Fri: 8am&ndash;6pm<br>Sat: 9am&ndash;1pm<br>Sun: Closed</p>",
-  // Exactly 160 characters — replace during client intake with real copy.
-  footerAbout:
-    "[Practice Name] provides compassionate, high-quality veterinary care for dogs, cats, and other companion animals throughout [City, ST] and the surrounding area.",
-  // Example values — replace during client intake. Kept non-empty (same
-  // reasoning as the other placeholder fields above) so ReputationWidget's
-  // "leave a public review" stage actually has links to render instead of
-  // silently filtering all three out.
-  googleReviewsLink: "https://g.page/r/example/review",
-  facebookReviewsLink: "https://www.facebook.com/example/reviews",
-  yelpReviewLink: "https://www.yelp.com/biz/example",
-  googleRating: 4.8, // example value — matches the real V2 export's placeholder rating
-  googleReviewCount: 120, // example value only, not sourced from anywhere real
-  url: "https://example.com", // REPLACE with the real domain before launch — see the field comment above
-  // Placeholder mark + wordmark (scripts/generate-logo-placeholders.mjs) —
-  // proves Header's crossfade renders end-to-end. REPLACE both with the
-  // client's real logo files before launch (same public/ paths, or update
-  // these to point at new ones).
-  logoWhite: "/logo-white.svg",
-  logoColor: "/logo-color.svg",
+  practiceName: "Lucca Veterinary Data Security",
+  phoneNumber: "(720) 316-8344",
+  email: "support@lucca.vet",
+  addressLocality: "Grand Junction",
+  addressRegion: "CO",
+  addressLink:
+    "https://www.google.com/maps/place/Lucca+Veterinary+Data+Security/@39.0788057,-108.5851621,17z/data=!3m1!4b1!4m6!3m5!1s0x87471dfb35563d11:0x8d0ad27d773d9114!8m2!3d39.0788016!4d-108.5825872!16s%2Fg%2F11yw_kky_m",
+  showStreetAddress: true,
+  cityState: "Grand Junction, CO",
+  bookingUrl: "https://calendly.com/lucca_vet/call?month=2021-09",
+  bookingLabel: "Schedule A Call",
+  businessDescription:
+    "Veterinary IT support and cybersecurity: LUCCA helps animal hospitals stay compliant, secure, and efficient.",
+  businessSchemaType: ["LocalBusiness", "ProfessionalService"],
+  googleRating: 4.8, // the live reviews badge's fallback text ("4.8 ★★★★★")
+  googleWidgetId: "ChIJET1WNfsdR4cRFJE9d33SCo0", // agency reviews widget (vetmarketing.googlewidget.com)
+  gtmId: "GTM-K8FZ37DP",
+  url: "https://www.lucca.vet",
+  logoColor: "/images/site/lucca-logo.png",
 };
