@@ -111,6 +111,12 @@ const blog = defineCollection({
       sources: z.array(z.object({ text: z.string(), url: z.string().url() })).default([]),
       featured: z.boolean().default(false),
       monthLabel: z.string().optional(), // legacy display override for the date
+      bodyFormat: z.enum(["markdown", "html"]).default("markdown"), // "html" = imported Webflow rich text, rendered as-is
+      webflowCreatedOn: z.string().optional(), // Webflow item "Created On" (imported posts only; sort key, as on the old site)
+      webflowLastPublished: z.string().optional(), // Webflow item "Last Published" (imported posts only)
+      webflowNoHeroImage: z.boolean().optional(), // Lucca: the live post had no "Blog Details Image" (hero hidden)
+      webflowHeroSrcset: z.string().optional(), // Lucca: the live hero's responsive variants (public/images/blog/), for a 0px match
+      webflowHeroSizes: z.string().optional(),
     }),
 });
 

@@ -1,0 +1,12 @@
+---
+// Lucca: every page of the live Webflow site except the homepage and the blog (index + posts), at its
+// original URL — static pages and the Services / Our Team / Case Study / ebook / blog category item pages.
+import WebflowPage from "../components/WebflowPage.astro";
+import { staticWebflowRoutes } from "../lib/webflow";
+
+export function getStaticPaths() {
+  return staticWebflowRoutes().map((r) => ({ params: { wf: r.slice(1) } }));
+}
+---
+
+<WebflowPage route={`/${Astro.params.wf}`} />

@@ -1,0 +1,23 @@
+---
+// Lucca: renders one ported Webflow page (src/webflow/pages/*.html, the live page's .main-wrapper content)
+// inside the shared layout, with its exact live title and description.
+import BaseLayout from "../layouts/BaseLayout.astro";
+import { getWebflowPage, prepare } from "../lib/webflow";
+import { getSiteInfo } from "../lib/data/site";
+
+interface Props { route: string }
+const { route } = Astro.props;
+const { meta, html } = getWebflowPage(route);
+const site = await getSiteInfo();
+---
+
+<BaseLayout
+  title={meta.title}
+  titleTemplate="full"
+  description={meta.description}
+  wfPageId={meta.pageId}
+  headStyles={meta.headStyles}
+  bodyScript={meta.bodyScript}
+>
+  <Fragment set:html={prepare(html, site)} />
+</BaseLayout>

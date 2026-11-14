@@ -213,6 +213,40 @@
   --wf-ffff00: #ffff00;
   --wf-ffffff: #ffffff;
   --wf-ffffff66: #ffffff66;
+  /* Lucca: literal colors/timings the inner pages add (port-lucca.mjs) */
+  --wf-00000014: #00000014;
+  --wf-0000001a: #0000001a;
+  --wf-0f0d0a: #0f0d0a;
+  --wf-161700: #161700;
+  --wf-1bd75f: #1bd75f;
+  --wf-22222266: #22222266;
+  --wf-2422591a: #2422591a;
+  --wf-24225933: #24225933;
+  --wf-2895f7: #2895f7;
+  --wf-2d2a79: #2d2a79;
+  --wf-313314: #313314;
+  --wf-33333366: #33333366;
+  --wf-5d6c7b: #5d6c7b;
+  --wf-758696: #758696;
+  --wf-75869600: #75869600;
+  --wf-999999: #999999;
+  --wf-9aa4b2: #9aa4b2;
+  --wf-9b9b9b: #9b9b9b;
+  --wf-aaadb0: #aaadb0;
+  --wf-cccccc: #cccccc;
+  --wf-d91414: #d91414;
+  --wf-dbe2f9: #dbe2f9;
+  --wf-e3e8ef: #e3e8ef;
+  --wf-e7ebf9: #e7ebf9;
+  --wf-ea384c: #ea384c;
+  --wf-eeeeee: #eeeeee;
+  --wf-f2f4f8: #f2f4f8;
+  --wf-f3f3f3: #f3f3f3;
+  --wf-fafafa: #fafafa;
+  --wf-fca12c: #fca12c;
+  --wf-ffdede: #ffdede;
+  --wf-ffffff00: #ffffff00;
+  --wf-ffffff4d: #ffffff4d;
   /* Lucca: literal timings from the ported Webflow stylesheet */
   --wf-dur-100ms: .1s;
   --wf-dur-250ms: .25s;
@@ -221,6 +255,7 @@
   --wf-dur-400ms: .4s;
   --wf-dur-500ms: .5s;
   --wf-dur-800ms: .8s;
+  --w-backdrop-animation: none; /* Webflow popover/modal backdrop (site.css had it as an inline fallback) */
   /* Lucca: Webflow interaction (IX2) timings and easings — used by site-custom.css and
      WebflowInteractions.astro to replay the live site's animations exactly */
   --ix-dur-0: 0s; /* instant (a step that Webflow ran with no duration) */

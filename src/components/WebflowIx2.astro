@@ -1,0 +1,642 @@
+---
+// Lucca: replays the live site's Webflow interactions (IX2) on the ported inner pages (src/webflow/), from
+// src/webflow/ix2.json (extracted from the live webflow.js chunk) — scroll reveals, hovers, clicks, the FAQ and
+// service-category dropdowns, scroll-linked timelines — with Webflow's own timings, easings and breakpoints.
+// Plus the Webflow components inside the page content: dropdowns, sliders, tabs, lightbox, forms.
+// Adapted from the All Pets Medical Center port. Mounted by BaseLayout only on ported pages (wfPageId); the
+// homepage and the header/footer use Armando's WebflowInteractions.astro, so everything here is scoped to <main>.
+import ix2 from "../webflow/ix2.json";
+const data = JSON.stringify({ events: ix2.events, actionLists: ix2.actionLists });
+---
+
+<script is:inline type="application/json" id="wf-ix2-data" set:html={data} />
+
+<script>
+  type Cfg = Record<string, any>;
+  const IX = JSON.parse(document.getElementById("wf-ix2-data")!.textContent || "{}");
+  const pageId = document.documentElement.getAttribute("data-wf-page") || "";
+  const MAIN = document.getElementById("main-content")!;
+  const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  // ---------- breakpoints (Webflow: main ≥992, medium 768–991, small 480–767, tiny <480) ----------
+  const bp = () => (innerWidth >= 992 ? "main" : innerWidth >= 768 ? "medium" : innerWidth >= 480 ? "small" : "tiny");
+
+  // ---------- easings (Webflow ix2 names) ----------
+  const pow = (p: number) => ({
+    in: (t: number) => t ** p,
+    out: (t: number) => 1 - (1 - t) ** p,
+    inOut: (t: number) => (t < 0.5 ? 2 ** (p - 1) * t ** p : 1 - (-2 * t + 2) ** p / 2),
+  });
+  const bez = (x1: number, y1: number, x2: number, y2: number) => (t: number) => {
+    let a = t;
+    for (let i = 0; i < 8; i++) {
+      const x = 3 * (1 - a) ** 2 * a * x1 + 3 * (1 - a) * a * a * x2 + a ** 3 - t;
+      const dx = 3 * (1 - a) ** 2 * x1 + 6 * (1 - a) * a * (x2 - x1) + 3 * a * a * (1 - x2);
+      if (Math.abs(dx) < 1e-6) break;
+      a -= x / dx;
+    }
+    return 3 * (1 - a) ** 2 * a * y1 + 3 * (1 - a) * a * a * y2 + a ** 3;
+  };
+  const EASE: Record<string, (t: number) => number> = {
+    "": (t) => t, linear: (t) => t,
+    ease: bez(0.25, 0.1, 0.25, 1), easeIn: bez(0.42, 0, 1, 1), easeOut: bez(0, 0, 0.58, 1), easeInOut: bez(0.42, 0, 0.58, 1),
+    inQuad: pow(2).in, outQuad: pow(2).out, inOutQuad: pow(2).inOut,
+    inCubic: pow(3).in, outCubic: pow(3).out, inOutCubic: pow(3).inOut,
+    inQuart: pow(4).in, outQuart: pow(4).out, inOutQuart: pow(4).inOut,
+    inQuint: pow(5).in, outQuint: pow(5).out, inOutQuint: pow(5).inOut,
+    inSine: (t) => 1 - Math.cos((t * Math.PI) / 2), outSine: (t) => Math.sin((t * Math.PI) / 2), inOutSine: (t) => -(Math.cos(Math.PI * t) - 1) / 2,
+    inExpo: (t) => (t === 0 ? 0 : 2 ** (10 * t - 10)), outExpo: (t) => (t === 1 ? 1 : 1 - 2 ** (-10 * t)),
+    inOutExpo: (t) => (t === 0 || t === 1 ? t : t < 0.5 ? 2 ** (20 * t - 10) / 2 : (2 - 2 ** (-20 * t + 10)) / 2),
+    inCirc: (t) => 1 - Math.sqrt(1 - t * t), outCirc: (t) => Math.sqrt(1 - (t - 1) ** 2),
+    inOutCirc: (t) => (t < 0.5 ? (1 - Math.sqrt(1 - (2 * t) ** 2)) / 2 : (Math.sqrt(1 - (-2 * t + 2) ** 2) + 1) / 2),
+    inBack: (t) => 2.70158 * t ** 3 - 1.70158 * t * t, outBack: (t) => 1 + 2.70158 * (t - 1) ** 3 + 1.70158 * (t - 1) ** 2,
+    inOutBack: (t) => { const c = 1.70158 * 1.525; return t < 0.5 ? ((2 * t) ** 2 * ((c + 1) * 2 * t - c)) / 2 : ((2 * t - 2) ** 2 * ((c + 1) * (t * 2 - 2) + c) + 2) / 2; },
+    outElastic: (t) => (t === 0 || t === 1 ? t : 2 ** (-10 * t) * Math.sin(((t * 10 - 0.75) * 2 * Math.PI) / 3) + 1),
+    inElastic: (t) => (t === 0 || t === 1 ? t : -(2 ** (10 * t - 10)) * Math.sin(((t * 10 - 10.75) * 2 * Math.PI) / 3)),
+    outBounce: (t) => { const n = 7.5625, d = 2.75; if (t < 1 / d) return n * t * t; if (t < 2 / d) return n * (t -= 1.5 / d) * t + 0.75; if (t < 2.5 / d) return n * (t -= 2.25 / d) * t + 0.9375; return n * (t -= 2.625 / d) * t + 0.984375; },
+  };
+  const easeFn = (e: any) => (Array.isArray(e) ? bez(e[0], e[1], e[2], e[3]) : EASE[e ?? ""] ?? EASE.ease);
+
+  // ---------- per-element state (transform parts are composed in Webflow's order) ----------
+  type St = { tx: number[]; tu: string[]; s: number[]; r: number[]; sk: number[]; o?: number };
+  const states = new WeakMap<Element, St>();
+  const st = (el: Element): St => {
+    let s = states.get(el);
+    if (!s) {
+      s = { tx: [0, 0, 0], tu: ["px", "px", "px"], s: [1, 1, 1], r: [0, 0, 0], sk: [0, 0] };
+      const t = (el as HTMLElement).style.transform; // Webflow publishes initial states inline
+      const m3 = t.match(/translate3d\(([-\d.]+)(\w+|%), ([-\d.]+)(\w+|%), ([-\d.]+)(\w+|%)\)/);
+      if (m3) { s.tx = [+m3[1], +m3[3], +m3[5]]; s.tu = [m3[2], m3[4], m3[6]]; }
+      const sc = t.match(/scale3d\(([-\d.]+), ([-\d.]+), ([-\d.]+)\)/);
+      if (sc) s.s = [+sc[1], +sc[2], +sc[3]];
+      for (const [i, ax] of ["X", "Y", "Z"].entries()) { const r = t.match(new RegExp(`rotate${ax}\\(([-\\d.]+)deg\\)`)); if (r) s.r[i] = +r[1]; }
+      const sk = t.match(/skew\(([-\d.]+)deg, ([-\d.]+)deg\)/);
+      if (sk) s.sk = [+sk[1], +sk[2]];
+      states.set(el, s);
+    }
+    return s;
+  };
+  const render = (el: HTMLElement, s: St) => {
+    el.style.transform = `translate3d(${s.tx[0]}${s.tu[0]}, ${s.tx[1]}${s.tu[1]}, ${s.tx[2]}${s.tu[2]}) scale3d(${s.s[0]}, ${s.s[1]}, ${s.s[2]}) rotateX(${s.r[0]}deg) rotateY(${s.r[1]}deg) rotateZ(${s.r[2]}deg) skew(${s.sk[0]}deg, ${s.sk[1]}deg)`;
+    el.style.transformStyle = "preserve-3d";
+  };
+  const unit = (u?: string) => (u === "%" || u === "PERCENT" ? "%" : (u || "PX").toLowerCase().replace("deg", "deg"));
+
+  // ---------- target resolution ----------
+  const byWid = (id: string) => {
+    const [pg, wid] = id.includes("|") ? id.split("|") : ["", id];
+    if (pg && pg !== pageId) return [] as Element[];
+    return [...MAIN.querySelectorAll(`[data-w-id="${wid}"]`)];
+  };
+  function resolve(target: Cfg, trigger: Element | null): Element[] {
+    if (!target) return trigger ? [trigger] : [];
+    // An empty target ({}) matches nothing in webflow.js (All Pets: the directions link's click action a-25
+    // would otherwise hide the address on load).
+    if (!Object.keys(target).length) return [];
+    if (target.useEventTarget === true) return trigger ? [trigger] : [];
+    if (target.appliesTo === "BODY") return [document.body];
+    if (target.useEventTarget === "CHILDREN" && trigger) return target.selector ? [...trigger.querySelectorAll(target.selector)] : target.id ? byWid(target.id).filter((e) => trigger.contains(e)) : [];
+    if (target.useEventTarget === "SIBLINGS" && trigger) {
+      const sibs = [...(trigger.parentElement?.children ?? [])].filter((e) => e !== trigger);
+      return target.selector ? sibs.filter((e) => e.matches(target.selector)) : sibs;
+    }
+    if (target.useEventTarget === "PARENT" && trigger) {
+      const p = target.selector ? trigger.parentElement?.closest(target.selector) : trigger.parentElement;
+      return p ? [p] : [];
+    }
+    if (target.selector) return [...MAIN.querySelectorAll(target.selector)];
+    if (target.id) return byWid(target.id);
+    return trigger ? [trigger] : [];
+  }
+
+  // ---------- tweening ----------
+  const running = new WeakMap<Element, Map<string, number>>();
+  function tween(el: HTMLElement, kind: string, from: number[], to: number[], dur: number, ease: (t: number) => number, apply: (v: number[]) => void) {
+    const runs = running.get(el) ?? new Map();
+    running.set(el, runs);
+    const token = Math.random();
+    runs.set(kind, token);
+    if (dur <= 0 || reduce) { apply(to); return Promise.resolve(); }
+    return new Promise<void>((res) => {
+      const t0 = performance.now();
+      const step = (now: number) => {
+        if (runs.get(kind) !== token) return res();
+        const k = Math.min(1, (now - t0) / dur);
+        const e = ease(k);
+        apply(from.map((f, i) => f + (to[i] - f) * e));
+        if (k < 1) requestAnimationFrame(step); else res();
+      };
+      requestAnimationFrame(step);
+    });
+  }
+  // STYLE_SIZE: width/height in the action's unit ("AUTO" = auto); tweened from the current inline value
+  // when it is in the same unit, else set at once (Webflow's own tween does the same visually for these cases).
+  function setSize(el: HTMLElement, c: Cfg, dur: number, ease: (t: number) => number) {
+    for (const [prop, v, u] of [["width", c.widthValue, c.widthUnit], ["height", c.heightValue, c.heightUnit]] as const) {
+      if (u === "AUTO") { el.style[prop] = "auto"; continue; }
+      if (v === undefined || v === null) continue;
+      const un = unit(u);
+      const cur = el.style[prop].endsWith(un) ? parseFloat(el.style[prop]) : NaN;
+      if (isNaN(cur) || dur <= 0) { el.style[prop] = `${v}${un}`; continue; }
+      tween(el, prop, [cur], [+v], dur, ease, (x) => { el.style[prop] = `${x[0]}${un}`; });
+    }
+  }
+  const val = (v: any, cur: number) => (v === undefined || v === null ? cur : +v);
+
+  function runItem(it: Cfg, trigger: Element | null): Promise<void> {
+    const c = it.config;
+    const els = resolve(c.target, trigger) as HTMLElement[];
+    const dur = c.duration ?? 0;
+    const ease = easeFn(c.easing);
+    const go = () => Promise.all(els.map((el) => {
+      const s = st(el);
+      switch (it.actionTypeId) {
+        case "TRANSFORM_MOVE": {
+          const to = [val(c.xValue, s.tx[0]), val(c.yValue, s.tx[1]), val(c.zValue, s.tx[2])];
+          const u = [c.xUnit, c.yUnit, c.zUnit].map((x, i) => (x ? unit(x) : s.tu[i]));
+          s.tu = u;
+          return tween(el, "move", [...s.tx], to, dur, ease, (v) => { s.tx = v; render(el, s); });
+        }
+        case "TRANSFORM_SCALE": {
+          const to = [val(c.xValue, s.s[0]), val(c.yValue, s.s[1]), val(c.zValue, s.s[2])];
+          return tween(el, "scale", [...s.s], to, dur, ease, (v) => { s.s = v; render(el, s); });
+        }
+        case "TRANSFORM_ROTATE": {
+          const to = [val(c.xValue, s.r[0]), val(c.yValue, s.r[1]), val(c.zValue, s.r[2])];
+          return tween(el, "rotate", [...s.r], to, dur, ease, (v) => { s.r = v; render(el, s); });
+        }
+        case "TRANSFORM_SKEW": {
+          const to = [val(c.xValue, s.sk[0]), val(c.yValue, s.sk[1])];
+          return tween(el, "skew", [...s.sk], to, dur, ease, (v) => { s.sk = v; render(el, s); });
+        }
+        case "STYLE_OPACITY": {
+          const cur = parseFloat(getComputedStyle(el).opacity);
+          return tween(el, "opacity", [cur], [c.value / (c.value > 1 ? 100 : 1)], dur, ease, (v) => { el.style.opacity = String(v[0]); });
+        }
+        case "GENERAL_DISPLAY":
+          el.style.display = c.value;
+          return Promise.resolve();
+        case "STYLE_SIZE":
+          setSize(el, c, dur, ease);
+          return Promise.resolve();
+        case "STYLE_TEXT_COLOR":
+        case "STYLE_BACKGROUND_COLOR":
+        case "STYLE_BORDER": {
+          // Webflow color actions: rValue/gValue/bValue/aValue, tweened from the current computed color
+          if (c.rValue === undefined || c.rValue === null) return Promise.resolve();
+          const prop = it.actionTypeId === "STYLE_TEXT_COLOR" ? "color" : it.actionTypeId === "STYLE_BORDER" ? "borderColor" : "backgroundColor";
+          const cur = (getComputedStyle(el)[prop] as string).match(/[\d.]+/g)?.map(Number) ?? [0, 0, 0, 1];
+          const to = [+c.rValue, +c.gValue, +c.bValue, c.aValue === undefined ? 1 : +c.aValue];
+          return tween(el, prop, [cur[0], cur[1], cur[2], cur[3] ?? 1], to, dur, ease, (v) => {
+            (el.style as any)[prop] = `rgba(${Math.round(v[0])}, ${Math.round(v[1])}, ${Math.round(v[2])}, ${v[3]})`;
+          });
+        }
+        default:
+          return Promise.resolve();
+      }
+    })).then(() => undefined);
+    return c.delay ? new Promise((r) => setTimeout(() => go().then(r), reduce ? 0 : c.delay)) : go();
+  }
+
+  async function playList(listId: string, trigger: Element | null, initialOnly = false) {
+    const list = IX.actionLists[listId];
+    if (!list?.actionItemGroups) return;
+    const groups = list.actionItemGroups as Cfg[];
+    if (initialOnly) {
+      if (list.useFirstGroupAsInitialState) await Promise.all(groups[0].actionItems.map((it: Cfg) => runItem({ ...it, config: { ...it.config, duration: 0, delay: 0 } }, trigger)));
+      return;
+    }
+    for (const g of groups) await Promise.all(g.actionItems.map((it: Cfg) => runItem(it, trigger)));
+  }
+
+  // ---------- events ----------
+  const inMq = (ev: Cfg) => !ev.mediaQueries || ev.mediaQueries.includes(bp());
+  function triggers(ev: Cfg): Element[] {
+    const t = ev.target;
+    if (t.appliesTo === "PAGE") return t.id === pageId ? [document.body] : [];
+    if (t.appliesTo === "CLASS" && t.selector) return [...MAIN.querySelectorAll(t.selector)];
+    if (t.id) return byWid(t.id);
+    return [];
+  }
+
+  const events = Object.values(IX.events || {}) as Cfg[];
+  const clickPairs = new Map<Element, Cfg[]>();
+  const scrollDir: Cfg[] = [];
+  const pageScroll: Cfg[] = []; // continuous actions keyed to page scroll progress (0–100%)
+  const inView: { ev: Cfg; els: Element[] }[] = []; // continuous actions keyed to an element's pass through the viewport
+
+  for (const ev of events) {
+    const listId = ev.action?.config?.actionListId;
+    if (!listId) continue;
+    const delay = (ev.config?.delay as number) || 0;
+    const play = (el: Element | null) => (delay && !reduce ? setTimeout(() => playList(listId, el), delay) : playList(listId, el));
+    const els = triggers(ev);
+    if (!els.length) continue;
+    // Like webflow.js: an action list flagged useFirstGroupAsInitialState puts its first group in place at
+    // page load (e.g. FAQ answers hidden, hover overlays reset) — not only for scroll reveals.
+    if (["MOUSE_CLICK", "MOUSE_SECOND_CLICK", "MOUSE_OVER", "PAGE_SCROLL_DOWN", "PAGE_SCROLL_UP", "DROPDOWN_OPEN"].includes(ev.eventTypeId) && inMq(ev) && IX.actionLists[listId]?.useFirstGroupAsInitialState) {
+      for (const el of els) playList(listId, el === document.body ? null : el, true);
+    }
+    switch (ev.eventTypeId) {
+      case "PAGE_START":
+        if (inMq(ev)) play(null);
+        break;
+      case "PAGE_FINISH":
+        addEventListener("load", () => inMq(ev) && play(null));
+        break;
+      case "PAGE_SCROLL_UP":
+      case "PAGE_SCROLL_DOWN":
+        scrollDir.push(ev);
+        break;
+      case "PAGE_SCROLL":
+        if (ev.action.actionTypeId === "GENERAL_CONTINUOUS_ACTION") pageScroll.push(ev);
+        break;
+      case "SCROLL_INTO_VIEW":
+      case "SCROLL_OUT_OF_VIEW": {
+        if (!inMq(ev)) break;
+        const into = ev.eventTypeId === "SCROLL_INTO_VIEW";
+        const off = ev.config?.scrollOffsetValue ?? 0;
+        for (const el of els) {
+          if (into) playList(listId, el, true); // initial state before it scrolls in
+          let done = false;
+          const io = new IntersectionObserver((entries) => {
+            for (const e of entries) {
+              if (into ? e.isIntersecting : !e.isIntersecting && done) {
+                play(el);
+                if (!ev.config?.loop) { io.disconnect(); }
+              }
+              if (e.isIntersecting) done = true;
+            }
+          }, { rootMargin: `0px 0px -${off}% 0px` });
+          io.observe(el);
+        }
+        break;
+      }
+      case "MOUSE_OVER":
+        for (const el of els) el.addEventListener("mouseenter", () => inMq(ev) && play(el));
+        break;
+      case "MOUSE_OUT":
+        for (const el of els) el.addEventListener("mouseleave", () => inMq(ev) && play(el));
+        break;
+      case "DROPDOWN_OPEN":
+      case "DROPDOWN_CLOSE": {
+        const want = ev.eventTypeId === "DROPDOWN_OPEN" ? "open" : "close";
+        for (const el of els) el.addEventListener("wf-dropdown", (e) => {
+          if (e.target === el && (e as CustomEvent).detail === want && inMq(ev)) play(el);
+        });
+        break;
+      }
+      case "SCROLLING_IN_VIEW":
+        if (ev.action.actionTypeId === "GENERAL_CONTINUOUS_ACTION") inView.push({ ev, els });
+        break;
+      case "MOUSE_CLICK":
+      case "MOUSE_SECOND_CLICK":
+        for (const el of els) {
+          const arr = clickPairs.get(el) ?? [];
+          arr.push(ev);
+          clickPairs.set(el, arr);
+        }
+        break;
+    }
+  }
+  for (const [el, evs] of clickPairs) {
+    const first = evs.filter((e) => e.eventTypeId === "MOUSE_CLICK");
+    const second = evs.filter((e) => e.eventTypeId === "MOUSE_SECOND_CLICK");
+    let n = 0;
+    el.addEventListener("click", (e) => {
+      const tag = (el as HTMLElement).tagName;
+      if (tag === "A" && (el.getAttribute("href") || "#") === "#") e.preventDefault();
+      const set = second.length && n % 2 === 1 ? second : first;
+      n++;
+      for (const ev of set) if (inMq(ev)) {
+        const d = ev.config?.delay || 0;
+        const id = ev.action.config.actionListId;
+        d ? setTimeout(() => playList(id, el), d) : playList(id, el);
+      }
+    });
+  }
+  if (scrollDir.length) {
+    let last = scrollY, dir = "";
+    addEventListener("scroll", () => {
+      const now = scrollY;
+      if (Math.abs(now - last) < 2) return;
+      const d = now > last ? "PAGE_SCROLL_DOWN" : "PAGE_SCROLL_UP";
+      last = now;
+      if (d === dir) return;
+      dir = d;
+      for (const ev of scrollDir) if (ev.eventTypeId === d && inMq(ev)) playList(ev.action.config.actionListId, null);
+    }, { passive: true });
+  }
+
+  // Continuous page-scroll actions (e.g. the navbar slide-in): each action item is interpolated between the
+  // keyframes around the current scroll progress, as webflow.js does for SCROLL_PROGRESS parameter groups.
+  function applyContinuous(ev: Cfg, prog: number, trigger: Element | null) {
+        const list = IX.actionLists[ev.action.config.actionListId];
+        for (const pg of list?.continuousParameterGroups ?? []) {
+          if (pg.type !== "SCROLL_PROGRESS") continue;
+          const kfs = pg.continuousActionGroups as Cfg[];
+          let a = kfs[0], b = kfs[kfs.length - 1];
+          for (let i = 0; i < kfs.length - 1; i++) if (prog >= kfs[i].keyframe && prog <= kfs[i + 1].keyframe) { a = kfs[i]; b = kfs[i + 1]; break; }
+          const span = b.keyframe - a.keyframe;
+          const k = span > 0 ? Math.min(1, Math.max(0, (prog - a.keyframe) / span)) : 1;
+          a.actionItems.forEach((ia: Cfg, idx: number) => {
+            const ib = b.actionItems.find((x: Cfg) => x.actionTypeId === ia.actionTypeId && JSON.stringify(x.config.target) === JSON.stringify(ia.config.target)) ?? b.actionItems[idx] ?? ia;
+            const e = easeFn(ia.config.easing)(k);
+            const lerp = (x: any, y: any) => (x === undefined || x === null ? y : y === undefined || y === null ? x : +x + (+y - +x) * e);
+            const cfg = { ...ia.config, duration: 0, delay: 0 };
+            if (ia.actionTypeId === "STYLE_OPACITY") cfg.value = lerp(ia.config.value, ib.config.value);
+            else if (ia.actionTypeId === "STYLE_SIZE") { cfg.widthValue = lerp(ia.config.widthValue, ib.config.widthValue); cfg.heightValue = lerp(ia.config.heightValue, ib.config.heightValue); }
+            else if (/^STYLE_(TEXT_COLOR|BACKGROUND_COLOR|BORDER)$/.test(ia.actionTypeId)) { for (const key of ["rValue", "gValue", "bValue", "aValue"]) cfg[key] = lerp(ia.config[key], ib.config[key]); }
+            else for (const key of ["xValue", "yValue", "zValue"]) if (key in ia.config) cfg[key] = lerp(ia.config[key], ib.config[key]);
+            runItem({ ...ia, config: cfg }, trigger);
+          });
+        }
+  }
+  if (pageScroll.length) {
+    const applyScroll = () => {
+      const max = document.documentElement.scrollHeight - innerHeight;
+      const prog = max > 0 ? Math.min(100, Math.max(0, (scrollY / max) * 100)) : 0;
+      for (const ev of pageScroll) if (inMq(ev)) applyContinuous(ev, prog, null);
+    };
+    applyScroll();
+    addEventListener("scroll", applyScroll, { passive: true });
+    addEventListener("resize", applyScroll);
+  }
+
+  // SCROLLING_IN_VIEW: 0% when the element's top reaches the viewport bottom, 100% when its bottom leaves the top
+  if (inView.length) {
+    const applyInView = () => {
+      for (const { ev, els } of inView) {
+        if (!inMq(ev)) continue;
+        for (const el of els) {
+          const r = el.getBoundingClientRect();
+          const prog = Math.min(100, Math.max(0, ((innerHeight - r.top) / (innerHeight + r.height)) * 100));
+          applyContinuous(ev, prog, el);
+        }
+      }
+    };
+    applyInView();
+    addEventListener("scroll", applyInView, { passive: true });
+    addEventListener("resize", applyInView);
+  }
+  document.documentElement.classList.add("w-mod-ix");
+
+  // ---------- Webflow components ----------
+  // Dropdowns (click to open, like data-hover="false")
+  const closeDropdown = (dd: Element) => {
+    if (dd.classList.contains("w--open")) dd.dispatchEvent(new CustomEvent("wf-dropdown", { detail: "close" }));
+    dd.querySelectorAll(":scope > .w-dropdown-toggle, :scope > .w-dropdown-list").forEach((x) => x.classList.remove("w--open", "w--nav-dropdown-toggle-open", "w--nav-dropdown-list-open"));
+    dd.classList.remove("w--open", "w--nav-dropdown-open");
+    dd.querySelector(":scope > .w-dropdown-toggle")?.setAttribute("aria-expanded", "false");
+  };
+  MAIN.querySelectorAll(".w-dropdown").forEach((dd) => {
+    const toggle = dd.querySelector(":scope > .w-dropdown-toggle");
+    const list = dd.querySelector(":scope > .w-dropdown-list");
+    if (!toggle || !list) return;
+    toggle.setAttribute("role", "button");
+    toggle.setAttribute("tabindex", "0");
+    toggle.setAttribute("aria-haspopup", "menu");
+    toggle.setAttribute("aria-expanded", "false");
+    const open = () => {
+      // close siblings (other dropdowns at the same level)
+      dd.parentElement?.querySelectorAll(":scope > .w-dropdown.w--open").forEach((o) => o !== dd && closeDropdown(o));
+      const inOverlay = !!dd.closest("[data-nav-menu-open]");
+      toggle.classList.add("w--open");
+      list.classList.add("w--open");
+      dd.classList.add("w--open");
+      if (inOverlay) { dd.classList.add("w--nav-dropdown-open"); toggle.classList.add("w--nav-dropdown-toggle-open"); list.classList.add("w--nav-dropdown-list-open"); }
+      toggle.setAttribute("aria-expanded", "true");
+      dd.dispatchEvent(new CustomEvent("wf-dropdown", { detail: "open" }));
+    };
+    const onToggle = (e: Event) => { e.preventDefault(); e.stopPropagation(); dd.classList.contains("w--open") ? closeDropdown(dd) : open(); };
+    toggle.addEventListener("click", onToggle);
+    toggle.addEventListener("keydown", (e) => { const k = (e as KeyboardEvent).key; if (k === "Enter" || k === " ") onToggle(e); if (k === "Escape") closeDropdown(dd); });
+  });
+  document.addEventListener("click", (e) => {
+    MAIN.querySelectorAll(".w-dropdown.w--open").forEach((dd) => { if (!dd.contains(e.target as Node)) closeDropdown(dd); });
+  });
+
+  // Sliders — Webflow's "slide" animation with several slides in view (3 on desktop, 1 on phones):
+  // it moves a whole page (= the slides that fit in the mask) at a time, one dot per page, and with
+  // data-infinite the pages loop: the page leaving on one side re-enters on the other out of view.
+  MAIN.querySelectorAll<HTMLElement>(".w-slider").forEach((slider) => {
+    const mask = slider.querySelector<HTMLElement>(".w-slider-mask");
+    const slides = [...(mask?.querySelectorAll<HTMLElement>(":scope > .w-slide") ?? [])];
+    if (!mask || slides.length < 2) return;
+    const nav = slider.querySelector<HTMLElement>(".w-slider-nav");
+    const dur = +(slider.dataset.duration || 500);
+    const delay = +(slider.dataset.delay || 4000);
+    const infinite = slider.dataset.infinite === "true";
+    const easing = slider.dataset.easing || "ease";
+    let page = 0;
+    let perPage = 1;
+    let pages = slides.length;
+    let rels: (number | null)[] = slides.map(() => null);
+    const dots: HTMLElement[] = [];
+
+    const layout = () => {
+      const w = slides[0].offsetWidth || mask.offsetWidth;
+      // the mask can still be 0 wide when this runs (layout not settled): count 1 per page until it is
+      const pp = w > 0 && mask.offsetWidth > 0 ? Math.max(1, Math.round(mask.offsetWidth / w)) : 1;
+      if (pp === perPage && dots.length) return false;
+      perPage = pp;
+      pages = Math.ceil(slides.length / perPage);
+      page = Math.min(page, pages - 1);
+      rels = slides.map(() => null);
+      if (nav) {
+        nav.innerHTML = "";
+        dots.length = 0;
+        for (let n = 0; n < pages; n++) {
+          const d = document.createElement("div");
+          d.className = "w-slider-dot";
+          d.setAttribute("role", "button");
+          d.setAttribute("tabindex", n === 0 ? "0" : "-1");
+          d.setAttribute("aria-label", `Show slide ${n + 1} of ${pages}`);
+          const sp = slider.dataset.navSpacing;
+          if (sp) { d.style.marginLeft = `${sp}px`; d.style.marginRight = `${sp}px`; }
+          d.addEventListener("click", () => go(n, n >= page ? 1 : -1));
+          nav.appendChild(d);
+          dots.push(d);
+        }
+      }
+      return true;
+    };
+
+    // rel = a slide's page position relative to the current page (0 = in view, 1 = next page to the right…)
+    const place = (s: HTMLElement, k: number, rel: number, anim: boolean) => {
+      const w = slides[0].offsetWidth;
+      const target = rel * mask.offsetWidth + (k % perPage) * w; // left edge inside the mask
+      s.style.transition = anim && !reduce ? `transform ${dur}ms ${easing}` : "none";
+      s.style.transform = `translateX(${target - k * w}px)`;
+    };
+    const show = (p: number, dir: number, animate = true) => {
+      slides.forEach((s, k) => {
+        const pg = Math.floor(k / perPage);
+        const rel = infinite ? (pg - p + pages) % pages : pg - p;
+        const old = rels[k];
+        rels[k] = rel;
+        s.setAttribute("aria-hidden", String(rel !== 0));
+        if (!animate || old === null || !infinite) return place(s, k, rel, animate);
+        if (old === 0 && rel !== 0) {
+          // the page leaving: slides out to the side it's heading (left going forward), then
+          // re-seats at its new place out of view
+          place(s, k, dir > 0 ? -1 : 1, true);
+          setTimeout(() => rels[k] === rel && place(s, k, rel, false), reduce ? 0 : dur);
+        } else if (rel === 0 && old !== 0) {
+          // the page arriving: starts just outside the view on the side it comes from, then slides in
+          place(s, k, dir > 0 ? 1 : -1, false);
+          void s.offsetWidth;
+          place(s, k, 0, true);
+        } else {
+          place(s, k, rel, false);
+        }
+      });
+      dots.forEach((d, k) => d.classList.toggle("w-active", k === p));
+    };
+    const go = (n: number, dir: number) => {
+      const p = infinite ? (n + pages) % pages : Math.max(0, Math.min(pages - 1, n));
+      if (p === page) return restart();
+      page = p;
+      show(page, dir);
+      restart();
+    };
+    slider.querySelector(".w-slider-arrow-left")?.addEventListener("click", () => go(page - 1, -1));
+    slider.querySelector(".w-slider-arrow-right")?.addEventListener("click", () => go(page + 1, 1));
+    let timer = 0;
+    const restart = () => {
+      clearInterval(timer);
+      if (slider.dataset.autoplay === "true" && !reduce) timer = window.setInterval(() => go(page + 1, 1), delay + dur);
+    };
+    // swipe
+    let x0: number | null = null;
+    mask.addEventListener("pointerdown", (e) => { x0 = e.clientX; });
+    mask.addEventListener("pointerup", (e) => { if (x0 !== null && Math.abs(e.clientX - x0) > 40) { const d = e.clientX < x0 ? 1 : -1; go(page + d, d); } x0 = null; });
+    addEventListener("resize", () => { layout(); show(page, 1, false); });
+    addEventListener("load", () => { if (layout()) show(page, 1, false); });
+    // webflow.js adds a live region as the mask's last child that announces the current slide
+    if (!slider.querySelector(".w-slider-aria-label")) {
+      const live = document.createElement("div");
+      live.className = "w-slider-aria-label";
+      live.setAttribute("aria-live", "off");
+      live.setAttribute("aria-atomic", "true");
+      live.setAttribute("data-wf-ignore", "");
+      mask.appendChild(live);
+    }
+    layout();
+    show(0, 1, false);
+    restart();
+  });
+
+  // Tabs (All Pets /wellness-plans): like webflow.js — the link gets .w--current, the pane .w--tab-active;
+  // the old pane fades out over data-duration-out, then the new one fades in over data-duration-in.
+  MAIN.querySelectorAll<HTMLElement>(".w-tabs").forEach((tabs, ti) => {
+    const links = [...tabs.querySelectorAll<HTMLAnchorElement>(":scope > .w-tab-menu > .w-tab-link")];
+    const panes = [...tabs.querySelectorAll<HTMLElement>(":scope > .w-tab-content > .w-tab-pane")];
+    const dIn = reduce ? 0 : +(tabs.dataset.durationIn || 300);
+    const dOut = reduce ? 0 : +(tabs.dataset.durationOut || 100);
+    const ease = tabs.dataset.easing || "ease";
+    tabs.querySelector(":scope > .w-tab-menu")?.setAttribute("role", "tablist");
+    links.forEach((l, i) => {
+      const pane = panes.find((p) => p.dataset.wTab === l.dataset.wTab);
+      const id = `w-tabs-${ti}-data-w-tab-${i}`, pid = `w-tabs-${ti}-data-w-pane-${i}`;
+      l.id = id; l.href = `#${pid}`; l.setAttribute("role", "tab"); l.setAttribute("aria-controls", pid);
+      l.setAttribute("aria-selected", String(l.classList.contains("w--current")));
+      if (!l.classList.contains("w--current")) l.tabIndex = -1;
+      if (pane) { pane.id = pid; pane.setAttribute("role", "tabpanel"); pane.setAttribute("aria-labelledby", id); }
+    });
+    let busy = false;
+    links.forEach((l) => l.addEventListener("click", (e) => {
+      e.preventDefault();
+      if (busy || l.classList.contains("w--current")) return;
+      const next = panes.find((p) => p.dataset.wTab === l.dataset.wTab);
+      const cur = panes.find((p) => p.classList.contains("w--tab-active"));
+      links.forEach((x) => { const on = x === l; x.classList.toggle("w--current", on); x.setAttribute("aria-selected", String(on)); x.tabIndex = on ? 0 : -1; });
+      tabs.dataset.current = l.dataset.wTab;
+      busy = true;
+      const fadeIn = () => {
+        if (cur) { cur.classList.remove("w--tab-active"); cur.style.opacity = ""; cur.style.transition = ""; }
+        if (!next) { busy = false; return; }
+        next.classList.add("w--tab-active");
+        next.style.transition = "none"; next.style.opacity = "0";
+        void next.offsetWidth; // commit opacity 0 before fading in (no rAF: it never fires in background tabs)
+        next.style.transition = `opacity ${dIn}ms ${ease}`; next.style.opacity = "1";
+        setTimeout(() => { next.style.transition = ""; next.style.opacity = ""; busy = false; }, dIn);
+      };
+      if (cur && dOut) { cur.style.transition = `opacity ${dOut}ms ${ease}`; cur.style.opacity = "0"; setTimeout(fadeIn, dOut); }
+      else fadeIn();
+    }));
+  });
+
+  // Lightbox (Webflow's markup + classes, so the ported lightbox CSS applies)
+  const lbLinks = [...MAIN.querySelectorAll<HTMLAnchorElement>(".w-lightbox")];
+  type LbItem = { url: string; caption?: string };
+  const lbData = (a: Element) => {
+    try { return JSON.parse(a.querySelector("script.w-json")?.textContent || "{}"); } catch { return {}; }
+  };
+  lbLinks.forEach((a) => {
+    a.addEventListener("click", (e) => {
+      e.preventDefault();
+      const d = lbData(a);
+      const group = d.group ? lbLinks.filter((l) => lbData(l).group === d.group) : [a];
+      const items: LbItem[] = group.flatMap((l) => (lbData(l).items || []) as LbItem[]);
+      openLightbox(items, Math.max(0, group.indexOf(a)));
+    });
+  });
+  function openLightbox(items: LbItem[], start: number) {
+    if (!items.length) return;
+    let i = start;
+    const bd = document.createElement("div");
+    bd.className = "w-lightbox-backdrop";
+    bd.tabIndex = 0;
+    bd.innerHTML = `<div class="w-lightbox-container"><div class="w-lightbox-content"><div class="w-lightbox-view" tabindex="0"><div class="w-lightbox-frame"><figure class="w-lightbox-figure"><img class="w-lightbox-img w-lightbox-image" alt=""></figure></div></div><div class="w-lightbox-spinner w-lightbox-hide" role="progressbar"></div><div class="w-lightbox-control w-lightbox-left" role="button" aria-label="previous image"></div><div class="w-lightbox-control w-lightbox-right" role="button" aria-label="next image"></div><div class="w-lightbox-control w-lightbox-close" role="button" aria-label="close lightbox"></div></div><div class="w-lightbox-strip" role="tablist"></div></div>`;
+    const img = bd.querySelector<HTMLImageElement>(".w-lightbox-image")!;
+    const strip = bd.querySelector<HTMLElement>(".w-lightbox-strip")!;
+    const left = bd.querySelector<HTMLElement>(".w-lightbox-left")!;
+    const right = bd.querySelector<HTMLElement>(".w-lightbox-right")!;
+    items.forEach((it, k) => {
+      const t = document.createElement("div");
+      t.className = "w-lightbox-item";
+      t.innerHTML = `<div class="w-lightbox-strip-thumbnail w-lightbox-thumbnail"><img class="w-lightbox-thumbnail-image" alt="" src="${it.url}"></div>`;
+      t.addEventListener("click", () => show(k));
+      strip.appendChild(t);
+    });
+    const show = (k: number) => {
+      i = (k + items.length) % items.length;
+      img.src = items[i].url;
+      [...strip.children].forEach((c, n) => c.classList.toggle("w-lightbox-active", n === i));
+      left.classList.toggle("w-lightbox-inactive", items.length < 2);
+      right.classList.toggle("w-lightbox-inactive", items.length < 2);
+    };
+    const close = () => {
+      bd.style.transition = reduce ? "none" : "opacity 300ms";
+      bd.style.opacity = "0";
+      document.documentElement.classList.remove("w-lightbox-noscroll");
+      setTimeout(() => bd.remove(), reduce ? 0 : 300);
+      removeEventListener("keydown", onKey);
+    };
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") close(); if (e.key === "ArrowLeft") show(i - 1); if (e.key === "ArrowRight") show(i + 1); };
+    left.addEventListener("click", (e) => { e.stopPropagation(); show(i - 1); });
+    right.addEventListener("click", (e) => { e.stopPropagation(); show(i + 1); });
+    bd.querySelector(".w-lightbox-close")!.addEventListener("click", close);
+    bd.addEventListener("click", (e) => { if (e.target === bd || (e.target as Element).classList.contains("w-lightbox-frame") || (e.target as Element).classList.contains("w-lightbox-view")) close(); });
+    addEventListener("keydown", onKey);
+    document.body.appendChild(bd);
+    document.documentElement.classList.add("w-lightbox-noscroll");
+    show(i);
+    bd.style.transition = reduce ? "none" : "opacity 300ms";
+    requestAnimationFrame(() => { bd.style.opacity = "1"; bd.focus(); });
+  }
+
+  // Webflow forms: Webflow's form handling doesn't come along. Until each form is wired to its
+  // Gravity Forms embed, a submit shows the form's own failure message (never a fake success).
+  MAIN.querySelectorAll<HTMLFormElement>(".w-form form").forEach((form) => {
+    // ebook pages: the page's own script handles the submit (opens the Google Drive download)
+    if (form.id && [...document.scripts].some((sc) => !sc.src && sc.text.includes(form.id))) return;
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const wrap = form.closest(".w-form");
+      wrap?.querySelector<HTMLElement>(".w-form-fail")?.style.setProperty("display", "block");
+    });
+  });
+
+</script>

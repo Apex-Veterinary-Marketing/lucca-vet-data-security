@@ -11,7 +11,8 @@ const showScheduled = import.meta.env.SHOW_SCHEDULED === "1" || process.env.SHOW
 // Public URL of the blog. Storage never moves (src/content/blog, see
 // docs/BLOG-POST-CONTRACT.md); a fork that calls it "Resources" renames
 // src/pages/blog/ AND changes this one constant — every link follows it.
-export const BLOG_BASE = "/blog";
+// Lucca: posts live at /blog-post/<slug> (the Webflow collection URL); the list is /blog (pages/blog/index.astro).
+export const BLOG_BASE = "/blog-post";
 export const postHref = (post: { id: string }) => `${BLOG_BASE}/${post.id}`;
 
 export function isPublished(post: CollectionEntry<"blog">, now = new Date()) {
@@ -20,7 +21,9 @@ export function isPublished(post: CollectionEntry<"blog">, now = new Date()) {
 
 export async function getAllPosts() {
   const posts = await getCollection("blog", (post) => showScheduled || isPublished(post));
-  return posts.sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf());
+  // Imported Webflow posts sort by their Created On time, as on the old site; newer posts by pubDate.
+  const key = (p: CollectionEntry<"blog">) => (p.data.webflowCreatedOn ? Date.parse(p.data.webflowCreatedOn) : p.data.pubDate.valueOf());
+  return posts.sort((a, b) => key(b) - key(a));
 }
 export async function getPostBySlug(slug: string) {
   const post = await getEntry("blog", slug);

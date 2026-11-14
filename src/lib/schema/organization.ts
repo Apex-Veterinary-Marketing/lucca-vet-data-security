@@ -37,11 +37,7 @@ export async function getSiteSchemaNodes(origin: URL): Promise<Record<string, an
     name: site.practiceName,
     publisher: { "@id": "#business" },
     inLanguage: "en-US",
-    potentialAction: {
-      "@type": "SearchAction",
-      target: { "@type": "EntryPoint", urlTemplate: `${abs("/search")}?q={search_term_string}` },
-      "query-input": "required name=search_term_string",
-    },
+    // Lucca: no site search (the live Webflow site has none), so no SearchAction.
   };
 
   // getSiteInfo() has already removed the street when it isn't public, so a

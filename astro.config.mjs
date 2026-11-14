@@ -106,6 +106,10 @@ const singleSitemap = {
 export default defineConfig({
   site: siteUrl,
   ...(base ? { base } : {}),
+  // Lucca: the live Webflow site's own 301s (every other live URL is a page at the same path).
+  redirects: {
+    '/ebook': '/ebook/5-steps-to-protect-your-practice',
+  },
   // sitemap() lists every route; singleSitemap turns that into /sitemap.xml,
   // which robots.txt (src/pages/robots.txt.ts) points to.
   integrations: [sitemap(), singleSitemap, pagesBasePaths],

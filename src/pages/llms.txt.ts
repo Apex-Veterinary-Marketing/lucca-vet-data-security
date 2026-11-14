@@ -1,59 +1,40 @@
-// Dynamic endpoint (not a static public/llms.txt) so it's generated from the
-// same config singleton and content collections as the rest of the site,
-// per Skeleton-Build-Spec.md §10 ("an llms.txt file at the site root,
-// favoring structured Q&A-shaped content"). This is the structural half of
-// that requirement — real per-client narrative copy (practice voice,
-// differentiators) is still a content/authoring task at launch, not
-// something this endpoint can generate; see Plan.md §8.
+// Dynamic endpoint (not a static public/llms.txt) so it's generated from the same config singleton and
+// content as the rest of the site, per Skeleton-Build-Spec.md §10.
+// Lucca: the pages and IT services are the ported Webflow pages (src/webflow/pages.json), not the Skeleton
+// services collection, so they are listed from there, with each page's live title and meta description.
 import type { APIRoute } from "astro";
 import { getSiteInfo } from "../lib/data/site";
-import { getAllServiceCategories } from "../lib/data/serviceCategories";
-import { getAllServices } from "../lib/data/services";
-import { stripHtml } from "../lib/utils/stripHtml";
-import { BLOG_BASE } from "../lib/data/blog";
+import { webflowPages } from "../lib/webflow";
+
+const MAIN_PAGES = ["/about-us", "/it-services", "/testimonials", "/case-studies", "/lucca-data-vault", "/ebooks", "/contact-us", "/book-a-call", "/blog"];
 
 export const GET: APIRoute = async ({ site }) => {
   const base = site!;
   const url = (path: string) => new URL(path, base).href;
-
-  const [siteInfo, categories, services] = await Promise.all([
-    getSiteInfo(),
-    getAllServiceCategories(),
-    getAllServices(),
-  ]);
+  const siteInfo = await getSiteInfo();
+  const entry = (route: string) => {
+    const m = webflowPages[route];
+    if (!m) return undefined;
+    const name = m.title.split("|")[0].trim();
+    return `- [${name}](${url(route)})${m.description ? `: ${m.description}` : ""}`;
+  };
 
   const lines: string[] = [];
   lines.push(`# ${siteInfo.practiceName}`);
   lines.push("");
-  // businessDescription describes a non-clinic business correctly; the
-  // generic line assumes a veterinary practice. getSiteInfo() has already
-  // removed a non-public street address.
-  const summary = siteInfo.businessDescription || `Veterinary practice${siteInfo.cityState ? ` in ${siteInfo.cityState}` : ""}.`;
-  const location = siteInfo.address || siteInfo.addressLine2;
-  lines.push(`> ${summary}${location ? ` ${location}` : ""}${siteInfo.phoneNumber ? ` · ${siteInfo.phoneNumber}` : ""}`);
+  const summary = siteInfo.businessDescription || "IT support and data security for veterinary practices.";
+  lines.push(`> ${summary}${siteInfo.phoneNumber ? ` · ${siteInfo.phoneNumber}` : ""}`);
   lines.push("");
 
   lines.push("## Pages");
   lines.push(`- [Home](${url("/")})`);
-  lines.push(`- [Meet the Team](${url("/meet-the-team")})`);
-  lines.push(`- [Services](${url("/services")})`);
-  lines.push(`- [FAQ](${url("/faq")})`);
-  lines.push(`- [Contact](${url("/contact-us")})`);
-  lines.push(`- [Blog](${url(BLOG_BASE)})`);
+  for (const r of MAIN_PAGES) { const l = entry(r); if (l) lines.push(l); }
   lines.push("");
 
-  if (categories.length > 0) {
-    lines.push("## Services");
-    for (const category of categories) {
-      const inCategory = services.filter((s) => s.data.serviceCategory.some((ref) => ref.id === category.id));
-      if (inCategory.length === 0) continue;
-      lines.push(`### ${category.data.name}`);
-      for (const service of inCategory) {
-        const name = service.data.customName || service.data.name;
-        const summary = service.data.metaDescription || service.data.featuredText;
-        lines.push(`- [${name}](${url(`/services/${service.id}`)})${summary ? `: ${stripHtml(summary)}` : ""}`);
-      }
-    }
+  const services = Object.keys(webflowPages).filter((r) => r.startsWith("/services/")).sort();
+  if (services.length) {
+    lines.push("## IT Services");
+    for (const r of services) { const l = entry(r); if (l) lines.push(l); }
     lines.push("");
   }
 

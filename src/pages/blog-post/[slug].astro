@@ -1,0 +1,57 @@
+---
+// Lucca: a blog post in the live Webflow template (src/webflow/blog-post.html): title banner, hero image
+// ("Blog Details Image" — hidden when the post has none, as on live) and the rich text. Imported Webflow posts
+// keep their rich text as HTML (bodyFormat: html); posts published later through publish-from-issue are
+// Markdown and render through Astro.
+import { render } from "astro:content";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { getAllPosts, unlinkScheduledArticles } from "../../lib/data/blog";
+import { getSiteInfo } from "../../lib/data/site";
+import { prepare } from "../../lib/webflow";
+import { postTemplate, postPageId, thumbUrl, fillImg } from "../../lib/webflowBlog";
+
+export async function getStaticPaths() {
+  const posts = await getAllPosts();
+  return posts.map((post) => ({ params: { slug: post.id }, props: { post } }));
+}
+
+const { post } = Astro.props;
+const site = await getSiteInfo();
+const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+const hero = post.data.webflowNoHeroImage ? "" : await thumbUrl(post);
+const isHtml = post.data.bodyFormat === "html";
+const body = isHtml ? prepare(await unlinkScheduledArticles(post.body ?? ""), site) : "";
+const { Content } = await render(post);
+const html = prepare(fillImg(postTemplate.replace("{{TITLE}}", esc(post.data.name)), hero, post.data.webflowHeroSrcset, post.data.webflowHeroSizes), site);
+const [before, after] = html.split("<!--WF:BODY-->");
+
+const schema = [
+  {
+    "@type": "BlogPosting",
+    "@id": "#article",
+    headline: post.data.name,
+    datePublished: post.data.pubDate.toISOString(),
+    ...(hero ? { image: new URL(hero, Astro.site).href } : {}),
+    author: { "@type": "Organization", name: post.data.authorName ?? site.practiceName },
+    publisher: { "@id": "#business" },
+    mainEntityOfPage: { "@id": "#webpage" },
+  },
+];
+---
+
+<BaseLayout
+  title={post.data.titleTag || `${post.data.name}`}
+  titleTemplate={post.data.titleTag ? "full" : "page"}
+  description={post.data.metaDescription}
+  ogImage={post.data.postThumbnail}
+  ogImageAlt={post.data.thumbnailAlt}
+  ogType="article"
+  wfPageId={postPageId}
+  schemaGraph={schema}
+  webPage={{ mainEntity: { "@id": "#article" } }}
+  breadcrumb={post.data.name}
+>
+  <Fragment set:html={before} />
+  {isHtml ? <Fragment set:html={body} /> : <Content />}
+  <Fragment set:html={after} />
+</BaseLayout>

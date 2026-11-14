@@ -40,7 +40,20 @@ const resolves = (url) => {
   return [rel, `${rel}/index.html`, `${rel}.html`].some((candidate) => fs.existsSync(path.join(dist, candidate)));
 };
 
+// Lucca: links that are broken on the live Webflow site too (copied word for word into the replica's
+// blog posts / team pages), plus the /home-v2 and /home-v3 comparison-page placeholder. Listed, not failed —
+// the client decides where they should go.
+const KNOWN_BROKEN = new Set([
+  "/blog/the-top-3-web-browsers-to-use-in-your-veterinary-practice",
+  "/ebooklead",
+  "/products/5-simple-steps-to-protect-your-practice",
+  "/ransomware",
+  "/contact",
+  "/home/our-team",
+  "/meet-your-support-team",
+]);
 const broken = new Map();
+const knownBroken = new Map();
 const telNumbers = new Map(); // number → pages
 let checked = 0;
 for (const file of files) {
@@ -56,8 +69,9 @@ for (const file of files) {
     if (/^(mailto:|tel:|data:|javascript:|#|https?:\/\/|\/\/)/.test(url) || !url.startsWith("/")) continue;
     checked++;
     if (!resolves(url)) {
-      if (!broken.has(url)) broken.set(url, new Set());
-      broken.get(url).add(page);
+      const into = KNOWN_BROKEN.has(url.split("#")[0].split("?")[0].replace(/\/$/, "")) ? knownBroken : broken;
+      if (!into.has(url)) into.set(url, new Set());
+      into.get(url).add(page);
     }
   }
 }
@@ -73,6 +87,10 @@ if (telNumbers.size > 1) {
   }
 } else if (telNumbers.size === 1) {
   console.log(`✔ every tel: link dials ${[...telNumbers.keys()][0]}`);
+}
+if (knownBroken.size) {
+  console.log(`⚠ ${knownBroken.size} known broken link(s) kept as on the live site (see KNOWN_BROKEN):`);
+  for (const [url, pages] of knownBroken) console.log(`  ${url}  ←  ${[...pages].slice(0, 2).join(", ")}${pages.size > 2 ? ` (+${pages.size - 2} more)` : ""}`);
 }
 if (broken.size === 0) {
   console.log("✔ no broken internal links or assets");
