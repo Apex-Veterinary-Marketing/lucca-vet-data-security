@@ -596,7 +596,9 @@ const data = JSON.stringify({ events: ix2.events, actionLists: ix2.actionLists }
     items.forEach((it, k) => {
       const t = document.createElement("div");
       t.className = "w-lightbox-item";
-      t.innerHTML = `<div class="w-lightbox-strip-thumbnail w-lightbox-thumbnail"><img class="w-lightbox-thumbnail-image" alt="" src="${it.url}"></div>`;
+      // thumbnails cover their square box like on Webflow (webflow.js sizes them with .w-lightbox-tall/-wide;
+      // here object-fit does it and the site's img max-width can't squash them)
+      t.innerHTML = `<div class="w-lightbox-strip-thumbnail w-lightbox-thumbnail"><img class="w-lightbox-thumbnail-image" alt="" src="${it.url}" style="width: 100%; height: 100%; object-fit: cover; max-width: none;"></div>`;
       t.addEventListener("click", () => show(k));
       strip.appendChild(t);
     });
